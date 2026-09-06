@@ -15,7 +15,7 @@
 // Writing the message in the same transaction as the work.
 //
 //	docker compose up -d
-//	go run ./intermediate/06-outbox
+//	go run ./intermediate/03-outbox
 //
 // A service that writes to a database and then publishes has two things that
 // can fail independently, and the gap between them is where messages are lost

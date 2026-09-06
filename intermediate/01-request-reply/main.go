@@ -15,7 +15,7 @@
 // Asking a question and waiting for the answer.
 //
 //	docker compose up -d
-//	go run ./intermediate/04-request-reply
+//	go run ./intermediate/01-request-reply
 //
 // A synchronous shape drawn on an asynchronous system, which costs something:
 // a caller blocked on a reply holds a goroutine and a deadline, and a queue

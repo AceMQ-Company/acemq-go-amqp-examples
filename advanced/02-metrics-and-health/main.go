@@ -15,7 +15,7 @@
 // Metrics and health over HTTP.
 //
 //	docker compose up -d
-//	go run ./advanced/08-metrics-and-health
+//	go run ./advanced/02-metrics-and-health
 //
 // Then:
 //

@@ -41,16 +41,16 @@ ACEMQ_URL=amqps://guest:guest@broker:5671/ go run ./basic/01-publish-and-consume
 
 | | |
 |---|---|
-| [04-request-reply](intermediate/04-request-reply) | Ten concurrent requests, each getting its own answer, and a responder failure reaching the caller. |
-| [05-idempotent-consumer](intermediate/05-idempotent-consumer) | One logical message delivered four times and charged once. |
-| [06-outbox](intermediate/06-outbox) | Recording a message beside the work, and a relay publishing what was committed. |
+| [01-request-reply](intermediate/01-request-reply) | Ten concurrent requests, each getting its own answer, and a responder failure reaching the caller. |
+| [02-idempotent-consumer](intermediate/02-idempotent-consumer) | One logical message delivered four times and charged once. |
+| [03-outbox](intermediate/03-outbox) | Recording a message beside the work, and a relay publishing what was committed. |
 
 ### advanced
 
 | | |
 |---|---|
-| [07-connection-recovery](advanced/07-connection-recovery) | Restart the broker underneath it and watch the consumer come back. |
-| [08-metrics-and-health](advanced/08-metrics-and-health) | `/acemq-metrics`, `/acemq-health` and `/acemq-info`, on the same paths as Java and .NET. |
+| [01-connection-recovery](advanced/01-connection-recovery) | Restart the broker underneath it and watch the consumer come back. |
+| [02-metrics-and-health](advanced/02-metrics-and-health) | `/acemq-metrics`, `/acemq-health` and `/acemq-info`, on the same paths as Java and .NET. |
 
 ## The one worth doing by hand
 

@@ -15,7 +15,7 @@
 // Surviving a broker that goes away.
 //
 //	docker compose up -d
-//	go run ./advanced/07-connection-recovery
+//	go run ./advanced/01-connection-recovery
 //
 // Then, while it runs:
 //
@@ -49,7 +49,7 @@ func main() {
 	// Dialled directly rather than through acemq.Connect, because the recovery
 	// settings belong to the transport.
 	transport, err := rabbitmq.Dial(ctx, brokerURL(), rabbitmq.Config{
-		Name:          "examples/07-connection-recovery",
+		Name:          "examples/01-connection-recovery",
 		RecoveryDelay: 500 * time.Millisecond,
 		OnRecovery: func(e rabbitmq.RecoveryEvent) {
 			// Recovery nobody can see is only half an improvement on dying

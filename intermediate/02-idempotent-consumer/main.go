@@ -15,7 +15,7 @@
 // Handling a message once, even when it arrives twice.
 //
 //	docker compose up -d
-//	go run ./intermediate/05-idempotent-consumer
+//	go run ./intermediate/02-idempotent-consumer
 //
 // Retries and redeliveries mean a message can arrive more than once, so a
 // handler that changes anything needs to be able to tell.
