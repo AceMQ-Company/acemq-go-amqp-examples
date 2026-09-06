@@ -1,0 +1,108 @@
+# Every example is compiled and run against a real broker on every push.
+#
+# This is the whole reason the repository can be trusted. Examples rot: the
+# library moves on, the example does not, and a newcomer's first experience is a
+# build error. Running them here turns that into a red build instead.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  # The library can change without this repository changing at all, so the
+  # examples are also run on a schedule. A weekly failure here is how we find
+  # out that a released version broke something the documentation still claims.
+  schedule:
+    - cron: '23 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  examples:
+    name: run the examples
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          # The oldest toolchain the library supports. An example that needs a
+          # newer one is an example somebody cannot run.
+          go-version: '1.23'
+
+      - name: Check the formatting
+        run: |
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then
+            echo "::error::these files are not gofmt clean:"
+            echo "$unformatted"
+            exit 1
+          fi
+
+      - name: Build and vet
+        run: |
+          go build ./...
+          go vet ./...
+
+      - name: Start a broker
+        run: |
+          docker run -d --name broker \
+            -e HOME=/tmp \
+            -p 5672:5672 \
+            rabbitmq:4-alpine
+          # The broker's own word for it, from this boot. A TCP connect is not
+          # enough: Docker publishes the port before RabbitMQ is listening, and
+          # a connection then succeeds and is immediately reset.
+          started=$(date -u +%Y-%m-%dT%H:%M:%S)
+          for i in $(seq 1 60); do
+            if docker logs --since "$started" broker 2>&1 | grep -q "Server startup complete"; then
+              echo "the broker is up"
+              exit 0
+            fi
+            sleep 3
+          done
+          echo "::error::the broker never became ready"
+          docker logs broker
+          exit 1
+
+      - name: Run every example
+        env:
+          ACEMQ_URL: amqp://guest:guest@localhost:5672/
+          # The recovery example waits for somebody to restart the broker.
+          # Nobody is standing by here, so it runs briefly and proves it
+          # publishes and consumes rather than proving it recovers — the
+          # library's own suite restarts a broker for that.
+          ACEMQ_EXAMPLE_SECONDS: "5"
+        run: |
+          set -o pipefail
+          failed=""
+          # Every directory holding a main.go, found rather than listed, so an
+          # example added without touching this file is still run.
+          for dir in $(find basic intermediate advanced -name main.go -exec dirname {} \; | sort); do
+            echo "::group::$dir"
+            if ! go run "./$dir"; then
+              failed="$failed $dir"
+            fi
+            echo "::endgroup::"
+          done
+          if [ -n "$failed" ]; then
+            echo "::error::these examples failed:$failed"
+            exit 1
+          fi
+
+      - name: Check every example actually ran
+        # A find that matches nothing would make the step above pass without
+        # running anything at all, which is the quiet way a suite stops testing.
+        run: |
+          count=$(find basic intermediate advanced -name main.go | wc -l | tr -d ' ')
+          if [ "$count" -lt 8 ]; then
+            echo "::error::found only $count examples; expected at least 8"
+            exit 1
+          fi
+          echo "$count examples"
+
+      - name: What the broker said, if anything went wrong
+        if: failure()
+        run: docker logs broker
