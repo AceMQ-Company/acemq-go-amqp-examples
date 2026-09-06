@@ -36,6 +36,7 @@ ACEMQ_URL=amqps://guest:guest@broker:5671/ go run ./basic/01-publish-and-consume
 | [01-publish-and-consume](basic/01-publish-and-consume) | A durable queue, a confirmed publish, and a consumer that says what it did. |
 | [02-retries-and-dead-letters](basic/02-retries-and-dead-letters) | The attempt counter moving, a message giving up, and an error marked fatal skipping the wait. |
 | [03-topology-and-drift](basic/03-topology-and-drift) | Declaring a topology, printing it before applying it, and catching a broker that disagrees. |
+| [04-replay](basic/04-replay) | Dead-lettered invoices put back one tenant at a time, and the rest afterwards. |
 
 ### intermediate
 

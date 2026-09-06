@@ -51,10 +51,10 @@ func main() {
 	}
 	defer mq.Close()
 
-	if err := mq.DeclareQueue(ctx, "replay-invoices-dead"); err != nil {
+	if err := mq.DeclareQueue(ctx, "go-replay-invoices-dead"); err != nil {
 		log.Fatal(err)
 	}
-	if err := mq.DeclareQueue(ctx, "replay-invoices"); err != nil {
+	if err := mq.DeclareQueue(ctx, "go-replay-invoices"); err != nil {
 		log.Fatal(err)
 	}
 
@@ -64,7 +64,7 @@ func main() {
 	// and the handler rejected them, which is what example 02 shows. They are
 	// put there directly here so the example starts where the interesting part
 	// starts, and so it says the same thing every time it runs.
-	dead := acemq.NewPublisher[Invoice](mq, "", "replay-invoices-dead")
+	dead := acemq.NewPublisher[Invoice](mq, "", "go-replay-invoices-dead")
 	for _, invoice := range []Invoice{
 		{InvoiceID: "inv-1", Tenant: "acme"},
 		{InvoiceID: "inv-2", Tenant: "globex"},
@@ -84,7 +84,7 @@ func main() {
 	var mu sync.Mutex
 	handled := 0
 
-	fixed, err := acemq.Consume(ctx, mq, "replay-invoices",
+	fixed, err := acemq.Consume(ctx, mq, "go-replay-invoices",
 		func(_ context.Context, m acemq.Message[Invoice]) acemq.Ack {
 			log.Printf("  handled %s for %s", m.Payload.InvoiceID, m.Payload.Tenant)
 			mu.Lock()
@@ -109,10 +109,10 @@ func main() {
 	// What it declines is left where it was rather than discarded, which is what
 	// makes a replay something that can be done in stages.
 	result, err := patterns.Replay(ctx, mq, patterns.ReplayFrom{
-		Queue: "replay-invoices-dead",
+		Queue: "go-replay-invoices-dead",
 		// The default exchange routes to the queue named by the key, so this is
 		// where the messages go back to.
-		RoutingKey: "replay-invoices",
+		RoutingKey: "go-replay-invoices",
 		// Always give a limit. Without one, a replay against a queue somebody is
 		// still writing to may never stop.
 		Limit: 10,
@@ -136,8 +136,8 @@ func main() {
 	// What the filter declined is still on the dead-letter queue, which is the
 	// point: a replay in stages can be stopped after the first stage goes wrong.
 	result, err = patterns.Replay(ctx, mq, patterns.ReplayFrom{
-		Queue:      "replay-invoices-dead",
-		RoutingKey: "replay-invoices",
+		Queue:      "go-replay-invoices-dead",
+		RoutingKey: "go-replay-invoices",
 		Limit:      10,
 	})
 	if err != nil {
