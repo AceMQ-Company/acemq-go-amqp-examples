@@ -8,6 +8,14 @@ module github.com/AceMQ-Company/acemq-go-amqp-examples
 
 go 1.23
 
-require github.com/AceMQ-Company/acemq-go-amqp v0.5.0
+require (
+	github.com/AceMQ-Company/acemq-go-amqp v0.5.0
+	github.com/AceMQ-Company/acemq-go-amqp/codec/toml v0.5.0
+	github.com/AceMQ-Company/acemq-go-amqp/codec/yaml v0.5.0
+)
 
-require github.com/rabbitmq/amqp091-go v1.14.0 // indirect
+require (
+	github.com/BurntSushi/toml v1.5.0 // indirect
+	github.com/rabbitmq/amqp091-go v1.14.0 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
+)
