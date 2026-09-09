@@ -38,6 +38,7 @@ ACEMQ_URL=amqps://guest:guest@broker:5671/ go run ./basic/01-publish-and-consume
 | [02-retries-and-dead-letters](basic/02-retries-and-dead-letters) | The attempt counter moving, a message giving up, and an error marked fatal skipping the wait. |
 | [03-topology-and-drift](basic/03-topology-and-drift) | Declaring a topology, printing it before applying it, and catching a broker that disagrees. |
 | [04-replay](basic/04-replay) | Dead-lettered invoices put back one tenant at a time, and the rest afterwards. |
+| [05-codecs](basic/05-codecs) | Four formats on one queue read by one consumer, and the two codecs that interpret nothing. |
 
 ### intermediate
 
@@ -48,6 +49,8 @@ ACEMQ_URL=amqps://guest:guest@broker:5671/ go run ./basic/01-publish-and-consume
 | [03-outbox](intermediate/03-outbox) | Recording a message beside the work, and a relay publishing what was committed. |
 | [04-saga](intermediate/04-saga) | Three services undone in reverse, and a compensation that fails and leaves a row for a person. |
 | [05-scheduling](intermediate/05-scheduling) | Reminders delivered later through a ladder of queues, with the accuracy it costs shown rather than claimed. |
+| [06-interceptors](intermediate/06-interceptors) | One tenancy rule on the connection: a publish stopped, a card number redacted, a delivery refused. |
+| [07-binary-codecs](intermediate/07-binary-codecs) | Avro through a schema registry and protobuf, and the framing that keeps them apart. |
 
 ### advanced
 
@@ -56,6 +59,21 @@ ACEMQ_URL=amqps://guest:guest@broker:5671/ go run ./basic/01-publish-and-consume
 | [01-connection-recovery](advanced/01-connection-recovery) | Restart the broker underneath it and watch the consumer come back. |
 | [02-metrics-and-health](advanced/02-metrics-and-health) | `/acemq-metrics`, `/acemq-health` and `/acemq-info`, on the same paths as Java and .NET. |
 | [03-claim-check](advanced/03-claim-check) | Two reports one byte apart, on either side of the threshold, and what each puts on the wire. |
+| [04-encrypting-payloads](advanced/04-encrypting-payloads) | A key rotated without an outage, and what one altered byte does. |
+| [05-development-certificates](advanced/05-development-certificates) | TLS on a laptop, and a development certificate refused however trust is configured. |
+| [06-tracing](advanced/06-tracing) | A consumer span that is a child of its publish across the broker, proved by a message that carries no trace. |
+
+## The one that needs a broker of its own
+
+[advanced/05-development-certificates](advanced/05-development-certificates)
+needs a TLS listener holding certificates generated on this machine, so it comes
+with a compose profile and two commands:
+
+```bash
+go run github.com/AceMQ-Company/acemq-go-amqp/cmd/acemq-certs@v0.5.0 --out certs --broker localhost
+chmod 644 certs/server.key
+docker compose --profile tls up -d
+```
 
 ## The one worth doing by hand
 
