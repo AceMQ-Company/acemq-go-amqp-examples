@@ -7,7 +7,8 @@
 
 Runnable examples for [AceMQ for Go](https://github.com/AceMQ-Company/acemq-go-amqp).
 Each one is a single `main.go`: open a directory and the whole example is in
-front of you, with no shared helpers to trace.
+front of you, with no shared helpers to trace. The newer ones have a `README.md`
+beside them for the part that is worth explaining rather than narrating.
 
 They depend on the **released** version, so they resolve exactly what the
 documentation tells you to depend on — and an example that stops compiling
@@ -45,6 +46,8 @@ ACEMQ_URL=amqps://guest:guest@broker:5671/ go run ./basic/01-publish-and-consume
 | [01-request-reply](intermediate/01-request-reply) | Ten concurrent requests, each getting its own answer, and a responder failure reaching the caller. |
 | [02-idempotent-consumer](intermediate/02-idempotent-consumer) | One logical message delivered four times and charged once. |
 | [03-outbox](intermediate/03-outbox) | Recording a message beside the work, and a relay publishing what was committed. |
+| [04-saga](intermediate/04-saga) | Three services undone in reverse, and a compensation that fails and leaves a row for a person. |
+| [05-scheduling](intermediate/05-scheduling) | Reminders delivered later through a ladder of queues, with the accuracy it costs shown rather than claimed. |
 
 ### advanced
 
@@ -52,10 +55,12 @@ ACEMQ_URL=amqps://guest:guest@broker:5671/ go run ./basic/01-publish-and-consume
 |---|---|
 | [01-connection-recovery](advanced/01-connection-recovery) | Restart the broker underneath it and watch the consumer come back. |
 | [02-metrics-and-health](advanced/02-metrics-and-health) | `/acemq-metrics`, `/acemq-health` and `/acemq-info`, on the same paths as Java and .NET. |
+| [03-claim-check](advanced/03-claim-check) | Two reports one byte apart, on either side of the threshold, and what each puts on the wire. |
 
 ## The one worth doing by hand
 
-Example 07 is the only one that needs you. Start it, and while it runs:
+[advanced/01-connection-recovery](advanced/01-connection-recovery) is the only
+one that needs you. Start it, and while it runs:
 
 ```bash
 docker compose restart broker

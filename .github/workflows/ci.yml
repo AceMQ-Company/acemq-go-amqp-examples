@@ -97,8 +97,8 @@ jobs:
         # running anything at all, which is the quiet way a suite stops testing.
         run: |
           count=$(find basic intermediate advanced -name main.go | wc -l | tr -d ' ')
-          if [ "$count" -lt 8 ]; then
-            echo "::error::found only $count examples; expected at least 8"
+          if [ "$count" -lt 12 ]; then
+            echo "::error::found only $count examples; expected at least 12"
             exit 1
           fi
           echo "$count examples"

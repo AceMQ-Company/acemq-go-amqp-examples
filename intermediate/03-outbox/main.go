@@ -106,7 +106,7 @@ func main() {
 	log.Println()
 	log.Println("a record is removed only after the broker confirms it, so a crash")
 	log.Println("in between republishes rather than loses — which is why anything")
-	log.Println("consuming this needs to be idempotent. See example 05.")
+	log.Println("consuming this needs to be idempotent. See example 02.")
 }
 
 // brokerURL is the compose broker unless ACEMQ_URL names another.
