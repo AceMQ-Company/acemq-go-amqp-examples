@@ -67,9 +67,40 @@ jobs:
           docker logs broker
           exit 1
 
+      - name: Certificates, and a broker that speaks TLS
+        # The one example that needs a listener of its own. These are the two
+        # commands its README gives you, run here for the same reason: a TLS
+        # broker cannot be started until the certificates it serves exist.
+        run: |
+          go run github.com/AceMQ-Company/acemq-go-amqp/cmd/acemq-certs@v0.5.0 \
+            --out certs --broker localhost --days 1
+          # The generator writes keys 0600, which is right for a key and wrong
+          # for a container running as another user. RabbitMQ reports an
+          # unreadable key as a listener that failed to start.
+          chmod 644 certs/server.key
+          docker run -d --name tls-broker \
+            -e HOME=/tmp \
+            -v "$PWD/certs:/certs:ro" \
+            -v "$PWD/certs/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro" \
+            -p 5671:5671 \
+            rabbitmq:4-alpine
+          started=$(date -u +%Y-%m-%dT%H:%M:%S)
+          for i in $(seq 1 60); do
+            if docker logs --since "$started" tls-broker 2>&1 | grep -q "Server startup complete"; then
+              echo "the TLS broker is up"
+              exit 0
+            fi
+            sleep 3
+          done
+          echo "::error::the TLS broker never became ready"
+          docker logs tls-broker
+          exit 1
+
       - name: Run every example
         env:
           ACEMQ_URL: amqp://guest:guest@localhost:5672/
+          ACEMQ_AMQPS_URL: amqps://guest:guest@localhost:5671/
+          ACEMQ_CERTS: certs
           # The recovery example waits for somebody to restart the broker.
           # Nobody is standing by here, so it runs briefly and proves it
           # publishes and consumes rather than proving it recovers — the
@@ -97,12 +128,14 @@ jobs:
         # running anything at all, which is the quiet way a suite stops testing.
         run: |
           count=$(find basic intermediate advanced -name main.go | wc -l | tr -d ' ')
-          if [ "$count" -lt 12 ]; then
-            echo "::error::found only $count examples; expected at least 12"
+          if [ "$count" -lt 18 ]; then
+            echo "::error::found only $count examples; expected at least 18"
             exit 1
           fi
           echo "$count examples"
 
-      - name: What the broker said, if anything went wrong
+      - name: What the brokers said, if anything went wrong
         if: failure()
-        run: docker logs broker
+        run: |
+          docker logs broker
+          docker logs tls-broker || true

@@ -11,3 +11,27 @@ services:
     ports:
       - "5672:5672"
       - "15672:15672"
+
+  # The TLS listener advanced/05-development-certificates needs, holding
+  # certificates generated on this machine. It is behind a profile because it
+  # cannot start until they exist:
+  #
+  #   go run github.com/AceMQ-Company/acemq-go-amqp/cmd/acemq-certs@v0.5.0 \
+  #     --out certs --broker localhost
+  #   chmod 644 certs/server.key
+  #   docker compose --profile tls up -d
+  #
+  # The chmod is because the generator writes keys 0600, which is right for a
+  # key and wrong for a container running as another user. RabbitMQ reports an
+  # unreadable key as a listener that failed to start.
+  tls-broker:
+    image: rabbitmq:4-alpine
+    profiles: [tls]
+    environment:
+      HOME: /tmp
+    ports:
+      - "5671:5671"
+    volumes:
+      # rabbitmq.conf is written by the same command, and points at /certs.
+      - ./certs:/certs:ro
+      - ./certs/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
