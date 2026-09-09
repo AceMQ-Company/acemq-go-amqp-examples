@@ -53,20 +53,14 @@ func main() {
 	}
 	defer mq.Close()
 
-	// Rejected messages go to a queue somebody can actually read. A
-	// dead-letter queue nobody reads is a place messages go to be forgotten
-	// quietly, which is worse than dropping them: it looks like nothing is
-	// wrong.
-	if err := mq.DeclareExchange(ctx, "payments-dead", "fanout"); err != nil {
-		log.Fatal(err)
-	}
-	if err := mq.DeclareQueue(ctx, "payments-dead"); err != nil {
-		log.Fatal(err)
-	}
-	if err := mq.Bind(ctx, "payments-dead", "payments-dead", ""); err != nil {
-		log.Fatal(err)
-	}
-	if err := mq.DeclareQueue(ctx, "payments", acemq.DeadLetterTo("payments-dead")); err != nil {
+	// Only the source queue is declared here. A consumer declares the
+	// dead-letter half of its own topology as it starts — acemq.dlx,
+	// payments.dlq and payments.parked, with their bindings — so a message the
+	// library gives up on has somewhere to land whether or not anyone
+	// remembered to apply a topology first. That matters: the broker discards
+	// an unroutable message without a trace, and the one message just declared
+	// worth keeping would be the one that vanished.
+	if err := mq.DeclareQueue(ctx, "payments"); err != nil {
 		log.Fatal(err)
 	}
 
@@ -90,8 +84,13 @@ func main() {
 	}
 	defer consumer.Close()
 
+	// payments.dlq, declared by the consumer above rather than here: it is
+	// classic where a durable queue declared by hand is quorum, and a queue
+	// cannot be redeclared as a different type. A dead-letter queue nobody
+	// reads is a place messages go to be forgotten quietly, which is worse
+	// than dropping them, so something has to read it — here, this.
 	dead := make(chan acemq.Message[Payment], 1)
-	deadConsumer, err := acemq.Consume(ctx, mq, "payments-dead",
+	deadConsumer, err := acemq.Consume(ctx, mq, acemq.DeadLetterQueue("payments"),
 		func(_ context.Context, m acemq.Message[Payment]) acemq.Ack {
 			dead <- m
 			return acemq.Accept()

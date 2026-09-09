@@ -8,6 +8,6 @@ module github.com/AceMQ-Company/acemq-go-amqp-examples
 
 go 1.23
 
-require github.com/AceMQ-Company/acemq-go-amqp v0.1.4
+require github.com/AceMQ-Company/acemq-go-amqp v0.5.0
 
 require github.com/rabbitmq/amqp091-go v1.14.0 // indirect
