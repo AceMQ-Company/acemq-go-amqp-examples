@@ -56,9 +56,12 @@ Byte for byte what Java, .NET, Python and Ruby write. A message encrypted by thi
 example opens in any of them given the same key, and theirs open here. **0.5.0 is
 the release where that became true of Go**: up to v0.3.0 this library wrote a
 framing of its own, with a two-byte big-endian length and no magic byte, which no
-other library could read. Those bodies are still *read* — so a queue filled before
-the change can be drained by an upgraded consumer — and are never written again.
-Reading them goes away in v0.6.0.
+other library could read. Those bodies stopped being written in v0.5.0, which
+still read them so a queue filled before the change could be drained by an
+upgraded consumer. **v0.6.0 closed that window**: this library no longer reads
+them at all, and one now fails as a body in a framing `crypto.Codec` does not
+read. A queue that has been sitting since v0.3.0 must be drained by a v0.5.x
+consumer before the upgrade, not after it.
 
 The magic byte is why the two cannot be confused, and why a consumer pointed at a
 plaintext queue is told *this message was not written by crypto.Codec* rather

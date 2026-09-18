@@ -40,8 +40,10 @@
 //
 // Java, .NET, Python and Ruby write exactly that, so a message encrypted here
 // opens there given the same key. This library wrote a framing of its own up to
-// v0.3.0, which no other could read; it still reads those bodies so a queue
-// filled before the change can be drained, and never writes them.
+// v0.3.0, which no other could read. v0.5.0 stopped writing it and still read
+// it, so a queue filled before the change could be drained; v0.6.0 stopped
+// reading it too, so such a queue must be drained by a v0.5.x consumer before
+// upgrading rather than after.
 package main
 
 import (

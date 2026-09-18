@@ -9,12 +9,12 @@ module github.com/AceMQ-Company/acemq-go-amqp-examples
 go 1.23.0
 
 require (
-	github.com/AceMQ-Company/acemq-go-amqp v0.5.0
-	github.com/AceMQ-Company/acemq-go-amqp/codec/avro v0.5.0
-	github.com/AceMQ-Company/acemq-go-amqp/codec/protobuf v0.5.0
-	github.com/AceMQ-Company/acemq-go-amqp/codec/toml v0.5.0
-	github.com/AceMQ-Company/acemq-go-amqp/codec/yaml v0.5.0
-	github.com/AceMQ-Company/acemq-go-amqp/telemetry/otel v0.5.0
+	github.com/AceMQ-Company/acemq-go-amqp v0.6.1
+	github.com/AceMQ-Company/acemq-go-amqp/codec/avro v0.6.1
+	github.com/AceMQ-Company/acemq-go-amqp/codec/protobuf v0.6.1
+	github.com/AceMQ-Company/acemq-go-amqp/codec/toml v0.6.1
+	github.com/AceMQ-Company/acemq-go-amqp/codec/yaml v0.6.1
+	github.com/AceMQ-Company/acemq-go-amqp/telemetry/otel v0.6.1
 	go.opentelemetry.io/otel/sdk v1.38.0
 	go.opentelemetry.io/otel/trace v1.38.0
 	google.golang.org/protobuf v1.36.10

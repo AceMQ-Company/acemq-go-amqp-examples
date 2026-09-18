@@ -16,7 +16,7 @@ services:
   # certificates generated on this machine. It is behind a profile because it
   # cannot start until they exist:
   #
-  #   go run github.com/AceMQ-Company/acemq-go-amqp/cmd/acemq-certs@v0.5.0 \
+  #   go run github.com/AceMQ-Company/acemq-go-amqp/cmd/acemq-certs@v0.6.1 \
   #     --out certs --broker localhost
   #   chmod 644 certs/server.key
   #   docker compose --profile tls up -d

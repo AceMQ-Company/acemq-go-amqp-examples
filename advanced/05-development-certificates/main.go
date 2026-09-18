@@ -18,7 +18,7 @@
 // This is the one example that needs a broker of its own, because it needs a TLS
 // listener holding certificates generated here:
 //
-//	go run github.com/AceMQ-Company/acemq-go-amqp/cmd/acemq-certs@v0.5.0 --out certs --broker localhost
+//	go run github.com/AceMQ-Company/acemq-go-amqp/cmd/acemq-certs@v0.6.1 --out certs --broker localhost
 //	chmod 644 certs/server.key
 //	docker compose --profile tls up -d
 //	go run ./advanced/05-development-certificates
