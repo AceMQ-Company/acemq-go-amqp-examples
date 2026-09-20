@@ -131,7 +131,13 @@ jobs:
         env:
           ACEMQ_URL: amqp://guest:guest@localhost:5672/
           ACEMQ_AMQPS_URL: amqps://guest:guest@localhost:5671/
-          ACEMQ_CERTS: certs
+          # Absolute, because the loop below runs each example from inside its
+          # own directory. A relative "certs" resolved against the repository
+          # root while examples were run as ./<dir> from here, and silently
+          # stopped resolving when they started being run from within their own
+          # directory instead -- the TLS example then looked for certificates
+          # beside its own main.go and failed there rather than here.
+          ACEMQ_CERTS: ${{ github.workspace }}/certs
           # The recovery example waits for somebody to restart the broker.
           # Nobody is standing by here, so it runs briefly and proves it
           # publishes and consumes rather than proving it recovers — the
