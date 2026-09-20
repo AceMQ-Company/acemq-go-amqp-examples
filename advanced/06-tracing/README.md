@@ -127,5 +127,18 @@ go get github.com/AceMQ-Company/acemq-go-amqp/telemetry/otel
 ```
 
 A module of its own, so a service that publishes messages and traces nothing
-never resolves OpenTelemetry at all. It pins OpenTelemetry v1.38.0, the newest
-release that still builds on Go 1.23 — the floor the library targets.
+never resolves OpenTelemetry at all. It pins OpenTelemetry v1.46.0 and needs
+**Go 1.25**.
+
+That is higher than the Go 1.23 the library itself targets, and it is the
+reason this example is the one directory here with its own `go.mod`. Staying on
+OpenTelemetry v1.38.0 to hold the 1.23 line would mean shipping an example built
+on a release with four advisories against it, including a remotely reachable
+allocation attack through the `baggage` header. Raising the whole examples
+module to 1.25 instead would mean seventeen examples that have nothing to do
+with tracing demanding a newer Go than the library they demonstrate.
+
+So the cost sits with the example that incurs it. Everything else here still
+builds on 1.23, and CI proves that with a 1.23 toolchain rather than asserting
+it. If you are importing `telemetry/otel` at all you already need 1.25, because
+that module raised its own floor for the same reason.

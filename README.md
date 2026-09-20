@@ -95,6 +95,12 @@ alive, and the service consumes nothing while saying nothing.
 
 Go 1.23 or later, and Docker.
 
+One exception: `advanced/06-tracing` needs **Go 1.25**. It is a module of its
+own for that reason, so it asks nothing of the other seventeen — which still
+build on 1.23, checked with a 1.23 toolchain on every push. The `telemetry/otel`
+module it imports raised its floor to 1.25 when it took OpenTelemetry 1.46, so
+anyone tracing already needs it.
+
 ## How these stay honest
 
 CI compiles and **runs every one of them against a real broker**, on every push

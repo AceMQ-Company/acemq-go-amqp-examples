@@ -28,9 +28,18 @@ jobs:
 
       - uses: actions/setup-go@v5
         with:
-          # The oldest toolchain the library supports. An example that needs a
-          # newer one is an example somebody cannot run.
-          go-version: '1.23'
+          # Installed so that advanced/06-tracing can build: it is a module of
+          # its own and needs 1.25, because telemetry/otel raised its floor when
+          # it took OpenTelemetry 1.46.
+          #
+          # This is NOT a relaxation of the promise below. Everything else still
+          # has to build on the oldest toolchain the library supports, and the
+          # next step proves it with that toolchain rather than this one. An
+          # example that needs a newer Go than the library is an example
+          # somebody cannot run, which is why the one that genuinely does was
+          # moved out of the root module instead of raising the floor for the
+          # other seventeen.
+          go-version: '1.25'
 
       - name: Check the formatting
         run: |
@@ -41,7 +50,29 @@ jobs:
             exit 1
           fi
 
+      - name: The root module still builds on the oldest toolchain
+        # The promise, checked rather than asserted. GOTOOLCHAIN fetches the
+        # real 1.23 and builds with it, so this fails if anything in the root
+        # module starts needing something newer -- including a dependency that
+        # raises its own floor, which is exactly how tracing came to need 1.25.
+        run: |
+          declared=$(grep -E "^go [0-9]" go.mod | awk '{print $2}')
+          if [ "$declared" != "1.23.0" ]; then
+            echo "::error::the root module declares go $declared; the examples target 1.23"
+            exit 1
+          fi
+          GOTOOLCHAIN=go1.23.0 go build ./...
+          GOTOOLCHAIN=go1.23.0 go vet ./...
+
       - name: Build and vet
+        run: |
+          go build ./...
+          go vet ./...
+
+      - name: Build and vet the tracing example
+        # Its own module, so nothing above reaches it. Left unbuilt it would rot
+        # exactly like the examples this repository exists to keep honest.
+        working-directory: advanced/06-tracing
         run: |
           go build ./...
           go vet ./...
@@ -113,7 +144,13 @@ jobs:
           # example added without touching this file is still run.
           for dir in $(find basic intermediate advanced -name main.go -exec dirname {} \; | sort); do
             echo "::group::$dir"
-            if ! go run "./$dir"; then
+            # Run from inside the directory rather than as ./$dir from here.
+            # Both resolve the same way for an example in the root module, and
+            # only this one works for advanced/06-tracing, which has a go.mod of
+            # its own: `go run ./advanced/06-tracing` from the root fails with
+            # "directory not in main module", which reads like a missing example
+            # rather than like a second module.
+            if ! (cd "$dir" && go run .); then
               failed="$failed $dir"
             fi
             echo "::endgroup::"
