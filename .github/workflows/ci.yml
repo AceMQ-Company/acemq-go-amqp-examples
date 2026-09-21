@@ -145,6 +145,36 @@ jobs:
           ACEMQ_EXAMPLE_SECONDS: "5"
         run: |
           set -o pipefail
+
+          # Every ACEMQ_* variable above has to be a URL, a plain number, or an
+          # absolute path. Nothing relative, and this is why.
+          #
+          # The loop below runs each example from inside its own directory, which
+          # it must: advanced/06-tracing is a module of its own and `go run
+          # ./advanced/06-tracing` from the root fails. That change resolved
+          # relative paths against the example instead of against the repository
+          # root, silently and differently for every example. ACEMQ_CERTS was
+          # "certs" and stayed "certs", so the TLS example started looking for
+          # certificates beside its own main.go. Nothing failed at the point of
+          # the change; one example just began failing for a reason that read
+          # like a broken example rather than like a moved working directory.
+          #
+          # Checking every ACEMQ_* variable rather than a list of the ones known
+          # to be paths is the point: the next path-valued variable added to the
+          # env above cannot be relative without stopping here and asking.
+          for name in $(env | sed -n 's/^\(ACEMQ_[A-Z_]*\)=.*/\1/p' | sort); do
+            eval "value=\$$name"
+            case "$value" in
+              amqp://*|amqps://*|http://*|https://*) ;;
+              /*) ;;
+              *[!0-9]*)
+                echo "::error::$name is \"$value\", which is neither a URL, a number, nor an absolute path. Each example is run from inside its own directory, so a relative path resolves against the example rather than against the repository root. If it names a path, make it absolute in the env block of this step, by prefixing it with the github.workspace expression."
+                exit 1
+                ;;
+              *) ;;
+            esac
+          done
+
           failed=""
           # Every directory holding a main.go, found rather than listed, so an
           # example added without touching this file is still run.
@@ -182,3 +212,4 @@ jobs:
         run: |
           docker logs broker
           docker logs tls-broker || true
+
