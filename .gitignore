@@ -3,3 +3,6 @@
 *.key
 *.pem
 .DS_Store
+
+# The binary `go build` leaves in the module directory, named after it.
+advanced/06-tracing/06-tracing
