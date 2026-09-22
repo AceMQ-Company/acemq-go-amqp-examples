@@ -103,7 +103,7 @@ jobs:
         # commands its README gives you, run here for the same reason: a TLS
         # broker cannot be started until the certificates it serves exist.
         run: |
-          go run github.com/AceMQ-Company/acemq-go-amqp/cmd/acemq-certs@v0.7.0 \
+          go run github.com/AceMQ-Company/acemq-go-amqp/cmd/acemq-certs@v0.7.2 \
             --out certs --broker localhost --days 1
           # The generator writes keys 0600, which is right for a key and wrong
           # for a container running as another user. RabbitMQ reports an
@@ -252,10 +252,13 @@ jobs:
         # telemetry/otel is a module in its own right with its own path-prefixed
         # tags, so telemetry/otel's newest release is the newest
         # telemetry/otel/v* tag and has nothing whatever to do with v*. They are
-        # genuinely not in lockstep: at the time of writing the root module is at
-        # v0.7.0 and telemetry/otel is at v0.7.1, both current. So each module is
-        # compared against its own tag line, and nothing here demands one version
-        # number across all of them -- that would be wrong, not strict.
+        # genuinely not in lockstep, and a release that happens to leave them all
+        # on one number is not evidence that they are: telemetry/otel spent
+        # v0.7.1 on its own, for an OpenTelemetry bump the core never needed,
+        # while the root module stayed at v0.7.0 and both were current. So each
+        # module is compared against its own tag line, and nothing here demands
+        # one version number across all of them -- that would be wrong, not
+        # strict.
         #
         # What is deliberately not covered:
         #   - go.sum. It is derived from go.mod and `go build` fails when the two
