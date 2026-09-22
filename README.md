@@ -93,7 +93,8 @@ alive, and the service consumes nothing while saying nothing.
 
 ## Requirements
 
-Go 1.23 or later, and Docker.
+Go 1.23 or later, and Docker. RabbitMQ **3.13 or 4.x**, the range the library
+supports; `compose.yaml` brings up 4.x and CI runs every example against both.
 
 One exception: `advanced/06-tracing` needs **Go 1.25**. It is a module of its
 own for that reason, so it asks nothing of the other seventeen — which still
