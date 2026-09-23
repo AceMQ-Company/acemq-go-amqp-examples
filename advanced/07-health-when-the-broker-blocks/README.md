@@ -41,7 +41,9 @@ the state a production broker reaches under memory pressure
   aggregate  up: broker: the broker has blocked this connection; publishing is paused: low on memory
 
   control    a queue declare on this same connection has still not come
-             back after 5s.
+             back after 5s. That is what a health check that asked the
+             broker first would be sitting in, which is why this one
+             does not ask.
 
 putting the memory high watermark back to 0.4
   released   the same declare completed once the broker started reading: <nil>
