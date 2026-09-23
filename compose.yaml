@@ -35,3 +35,27 @@ services:
       # rabbitmq.conf is written by the same command, and points at /certs.
       - ./certs:/certs:ro
       - ./certs/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+
+  # A broker advanced/07-health-when-the-broker-blocks can put into a memory
+  # alarm without taking anything else down with it:
+  #
+  #   docker compose --profile alarm up -d
+  #   go run ./advanced/07-health-when-the-broker-blocks
+  #
+  # An alarm is a property of the node rather than of one connection. Every
+  # publisher on the broker that raises it stops being served for as long as it
+  # lasts, so an example that raised one on the shared broker above would fail
+  # whichever other example happened to be running, and would look innocent
+  # while doing it.
+  #
+  # Named rather than left to compose, because the example reaches the node
+  # through `docker exec <name> rabbitmqctl`: an alarm is set on the node and
+  # there is no AMQP for it.
+  alarm-broker:
+    image: rabbitmq:4-alpine
+    container_name: acemq-alarm-broker
+    profiles: [alarm]
+    environment:
+      HOME: /tmp
+    ports:
+      - "5673:5672"
