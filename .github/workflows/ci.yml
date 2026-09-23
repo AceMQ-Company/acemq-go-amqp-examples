@@ -52,7 +52,7 @@ jobs:
           # example that needs a newer Go than the library is an example
           # somebody cannot run, which is why the one that genuinely does was
           # moved out of the root module instead of raising the floor for the
-          # other seventeen.
+          # other eighteen.
           go-version: '1.25'
 
       - name: Check the formatting
@@ -141,6 +141,42 @@ jobs:
           docker logs tls-broker
           exit 1
 
+      - name: A broker that may be put into alarm
+        # advanced/07-health-when-the-broker-blocks drops this node's memory high
+        # watermark until RabbitMQ really blocks the connection. An alarm belongs
+        # to the node, not to one connection: every publisher on the broker that
+        # raises it is refused for as long as it lasts.
+        #
+        # On the shared broker above, that would fail whichever example happened
+        # to be running at the time -- and it would fail them with "publishing is
+        # paused", which reads like a defect in the example that reported it
+        # rather than like a neighbour holding an alarm. Ordering would not save
+        # it either: the loop below runs advanced before basic and intermediate,
+        # so the alarm-raising example runs seventh of nineteen whatever it is
+        # numbered.
+        #
+        # The example puts the watermark back in a deferred call that runs even
+        # when it fails, so this container is not sacrificial. It is here so that
+        # the one case that defeats a deferred restore -- the process being
+        # killed outright -- costs this job one broker rather than twelve
+        # examples.
+        run: |
+          docker run -d --name alarm-broker \
+            -e HOME=/tmp \
+            -p 5673:5672 \
+            rabbitmq:${{ matrix.broker }}
+          started=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          for i in $(seq 1 60); do
+            if docker logs --since "$started" alarm-broker 2>&1 | grep -q "Server startup complete"; then
+              echo "the alarm broker is up"
+              exit 0
+            fi
+            sleep 3
+          done
+          echo "::error::the alarm broker never became ready"
+          docker logs alarm-broker
+          exit 1
+
       - name: Run every example
         env:
           ACEMQ_URL: amqp://guest:guest@localhost:5672/
@@ -152,6 +188,12 @@ jobs:
           # directory instead -- the TLS example then looked for certificates
           # beside its own main.go and failed there rather than here.
           ACEMQ_CERTS: ${{ github.workspace }}/certs
+          # The broker advanced/07-health-when-the-broker-blocks is allowed to
+          # put into alarm, and the container it reaches rabbitmqctl through.
+          # Separate from ACEMQ_URL on purpose: an alarm stops every publisher on
+          # its node, so this example must never be pointed at the shared broker.
+          ACEMQ_ALARM_URL: amqp://guest:guest@localhost:5673/
+          ACEMQ_ALARM_CONTAINER: alarm-broker
           # The recovery example waits for somebody to restart the broker.
           # Nobody is standing by here, so it runs briefly and proves it
           # publishes and consumes rather than proving it recovers — the
@@ -177,6 +219,14 @@ jobs:
           # to be paths is the point: the next path-valued variable added to the
           # env above cannot be relative without stopping here and asking.
           for name in $(env | sed -n 's/^\(ACEMQ_[A-Z_]*\)=.*/\1/p' | sort); do
+            # The exceptions, named one at a time rather than by shape. A Docker
+            # container name is a bare word and so is a relative path, so there
+            # is no pattern that admits one without admitting the other -- and
+            # admitting the other is the bug this whole check exists for. Adding
+            # a name here is a decision somebody makes and a reviewer sees.
+            case "$name" in
+              ACEMQ_ALARM_CONTAINER) continue ;;
+            esac
             eval "value=\$$name"
             case "$value" in
               amqp://*|amqps://*|http://*|https://*) ;;
@@ -215,8 +265,8 @@ jobs:
         # running anything at all, which is the quiet way a suite stops testing.
         run: |
           count=$(find basic intermediate advanced -name main.go | wc -l | tr -d ' ')
-          if [ "$count" -lt 18 ]; then
-            echo "::error::found only $count examples; expected at least 18"
+          if [ "$count" -lt 19 ]; then
+            echo "::error::found only $count examples; expected at least 19"
             exit 1
           fi
           echo "$count examples"
@@ -226,6 +276,11 @@ jobs:
         run: |
           docker logs broker
           docker logs tls-broker || true
+          docker logs alarm-broker || true
+          # Whether the alarm was cleared. A broker still in alarm here means the
+          # restore did not run, which is a different finding from the example
+          # failing an assertion and is the one that would mislead a rerun.
+          docker exec -e HOME=/var/lib/rabbitmq alarm-broker rabbitmqctl status | grep -A3 -i alarm || true
 
   tracks-the-release:
     name: the pins are the newest releases
