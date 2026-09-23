@@ -62,8 +62,9 @@ ACEMQ_URL=amqps://guest:guest@broker:5671/ go run ./basic/01-publish-and-consume
 | [04-encrypting-payloads](advanced/04-encrypting-payloads) | A key rotated without an outage, and what one altered byte does. |
 | [05-development-certificates](advanced/05-development-certificates) | TLS on a laptop, and a development certificate refused however trust is configured. |
 | [06-tracing](advanced/06-tracing) | A consumer span that is a child of its publish across the broker, proved by a message that carries no trace. |
+| [07-health-when-the-broker-blocks](advanced/07-health-when-the-broker-blocks) | A real memory alarm, and health answering `up` in four microseconds with the broker's reason — beside a round trip on the same connection that never answers at all. |
 
-## The one that needs a broker of its own
+## The two that need a broker of their own
 
 [advanced/05-development-certificates](advanced/05-development-certificates)
 needs a TLS listener holding certificates generated on this machine, so it comes
@@ -74,6 +75,18 @@ go run github.com/AceMQ-Company/acemq-go-amqp/cmd/acemq-certs@v0.7.2 --out certs
 chmod 644 certs/server.key
 docker compose --profile tls up -d
 ```
+
+[advanced/07-health-when-the-broker-blocks](advanced/07-health-when-the-broker-blocks)
+puts a broker into a genuine memory alarm, and an alarm is a property of the
+node rather than of one connection — every publisher on that broker is refused
+for as long as it lasts. On the shared broker it would fail whichever other
+example happened to be running, so it gets one of its own:
+
+```bash
+docker compose --profile alarm up -d
+```
+
+It puts the watermark back when it is done, including when it fails.
 
 ## The one worth doing by hand
 
@@ -97,7 +110,7 @@ Go 1.23 or later, and Docker. RabbitMQ **3.13 or 4.x**, the range the library
 supports; `compose.yaml` brings up 4.x and CI runs every example against both.
 
 One exception: `advanced/06-tracing` needs **Go 1.25**. It is a module of its
-own for that reason, so it asks nothing of the other seventeen — which still
+own for that reason, so it asks nothing of the other eighteen — which still
 build on 1.23, checked with a 1.23 toolchain on every push. The `telemetry/otel`
 module it imports raised its floor to 1.25 when it took OpenTelemetry 1.46, so
 anyone tracing already needs it.
