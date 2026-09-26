@@ -63,6 +63,7 @@ ACEMQ_URL=amqps://guest:guest@broker:5671/ go run ./basic/01-publish-and-consume
 | [05-development-certificates](advanced/05-development-certificates) | TLS on a laptop, and a development certificate refused however trust is configured. |
 | [06-tracing](advanced/06-tracing) | A consumer span that is a child of its publish across the broker, proved by a message that carries no trace. |
 | [07-health-when-the-broker-blocks](advanced/07-health-when-the-broker-blocks) | A real memory alarm, and health answering `up` in four microseconds with the broker's reason — beside a round trip on the same connection that never answers at all. |
+| [08-a-standing-load-something-else-can-watch](advanced/08-a-standing-load-something-else-can-watch) | A load that does not finish, printing one JSON reading per second — so a fault drill can read what the client saw rather than what the broker did. |
 
 ## The two that need a broker of their own
 
