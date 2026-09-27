@@ -32,10 +32,15 @@ go run ./advanced/08-a-standing-load-something-else-can-watch \
     -broker amqp://guest:guest@localhost:5672 > readings.jsonl
 ```
 
-Flags: `-broker`, `-queue`, `-rate` (per second), `-interval`, `-for`. With no
-`-for` it runs until interrupted, which is what a drill campaign wants. Readings go
-to stdout and everything else to stderr, so redirecting stdout gives a file
-containing nothing but the timeline.
+Flags: `-broker`, `-queue`, `-rate` (per second), `-interval`, `-for`. `-for`
+defaults to **one minute**; pass `-for 0` (or `ACEMQ_EXAMPLE_SECONDS=0`) to run until
+interrupted, which is what a drill campaign wants and what `chaos-drill.sh workload
+up` passes. The default is bounded rather than endless because CI runs every example
+here with no arguments and waits: an endless one is not a failing example, it is a job
+that runs to the six-hour ceiling and is cancelled.
+
+Readings go to stdout and everything else to stderr, so redirecting stdout gives a
+file containing nothing but the timeline.
 
 ## What it prints
 

@@ -41,8 +41,9 @@
 // Under a fault drill that file is the client's testimony; `tail -n 60` on it is
 // how the drill asks.
 //
-// It exits on SIGINT or SIGTERM, or after -for if that is given. A drill campaign
-// runs it for the length of the campaign, so the default is to run until stopped.
+// It stops on SIGINT, SIGTERM, or after -for, which defaults to a minute. Pass
+// `-for 0` (or ACEMQ_EXAMPLE_SECONDS=0) to run until interrupted, which is what a
+// drill campaign wants.
 package main
 
 import (
@@ -130,7 +131,7 @@ func main() {
 	// for the same reason: unset it and this runs until stopped, which is what a
 	// drill campaign needs and what it would do on anybody's machine.
 	runFor := flag.Duration("for", exampleSeconds(),
-		"stop after this long; zero runs until interrupted")
+		"stop after this long; 0 runs until interrupted (what a drill campaign wants)")
 	flag.Parse()
 
 	if err := run(*broker, *queue, *rate, *interval, *runFor); err != nil {
@@ -302,18 +303,29 @@ func isPaused(err error) bool {
 	return errors.As(err, &paused)
 }
 
-// exampleSeconds is how long to run when nobody said, which is zero -- until
-// interrupted -- unless ACEMQ_EXAMPLE_SECONDS says otherwise.
+// defaultRunFor is how long to run when nobody said.
 //
-// It exists for CI, which runs every example in this repository with no arguments
-// and waits for each to finish. A standing load is the one example that has no
-// reason to stop on its own, and without this it would not be a failing example:
-// it would be a job that never ends.
+// A minute, not for ever, and the default is that way round on purpose. CI runs
+// every example in this repository with no arguments and waits for each to finish,
+// so an unbounded default is not a failing example -- it is a job that runs until
+// the six-hour ceiling and is then cancelled. That happened, in three repositories
+// at once, and cost about eighteen hours of runner time before anybody looked.
+//
+// So a forgotten setting produces a short run, and "until interrupted" has to be
+// asked for: -for 0, or ACEMQ_EXAMPLE_SECONDS=0, which is what a drill campaign
+// passes.
+const defaultRunFor = time.Minute
+
 func exampleSeconds() time.Duration {
-	n, err := strconv.Atoi(os.Getenv("ACEMQ_EXAMPLE_SECONDS"))
-	if err != nil || n <= 0 {
-		return 0
+	raw := os.Getenv("ACEMQ_EXAMPLE_SECONDS")
+	if raw == "" {
+		return defaultRunFor
 	}
+	n, err := strconv.Atoi(raw)
+	if err != nil {
+		return defaultRunFor
+	}
+	// Zero is a real setting and the only way to ask for an unbounded run.
 	return time.Duration(n) * time.Second
 }
 
