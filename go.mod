@@ -9,7 +9,7 @@ module github.com/AceMQ-Company/acemq-go-amqp-examples
 go 1.23.0
 
 require (
-	github.com/AceMQ-Company/acemq-go-amqp v0.8.0
+	github.com/AceMQ-Company/acemq-go-amqp v0.9.0
 	github.com/AceMQ-Company/acemq-go-amqp/codec/avro v0.7.2
 	github.com/AceMQ-Company/acemq-go-amqp/codec/protobuf v0.7.2
 	github.com/AceMQ-Company/acemq-go-amqp/codec/toml v0.7.2

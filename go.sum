@@ -1,5 +1,5 @@
-github.com/AceMQ-Company/acemq-go-amqp v0.8.0 h1:e9esRGRDhi/B8a15kHDkTNVAhUi88po7jUznsViJvVE=
-github.com/AceMQ-Company/acemq-go-amqp v0.8.0/go.mod h1:m6ufhu0fBuybBmEd/Rxep5b9MStuWwVqZqcTQK4zO8A=
+github.com/AceMQ-Company/acemq-go-amqp v0.9.0 h1:47sCf5qrLuGZKnMAdDIhfmSliW/ZXDDln4gcLkmEkjI=
+github.com/AceMQ-Company/acemq-go-amqp v0.9.0/go.mod h1:m6ufhu0fBuybBmEd/Rxep5b9MStuWwVqZqcTQK4zO8A=
 github.com/AceMQ-Company/acemq-go-amqp/codec/avro v0.7.2 h1:DYeUDMWX3MaZIuoeTX7eVdL/8sqzg7DrZ4HqtNotl/M=
 github.com/AceMQ-Company/acemq-go-amqp/codec/avro v0.7.2/go.mod h1:IrjXKYc5NLL1tC/NWPasVGO1EULrlZ9L2tBqEzONDC4=
 github.com/AceMQ-Company/acemq-go-amqp/codec/protobuf v0.7.2 h1:/22wt++4Lg5iZb8oekwfc79Jdd2xW6AH3OLuoU3T0IE=
