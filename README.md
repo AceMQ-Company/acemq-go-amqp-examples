@@ -54,6 +54,7 @@ ACEMQ_URL=amqps://guest:guest@broker:5671/ go run ./basic/01-publish-and-consume
 | [07-binary-codecs](intermediate/07-binary-codecs) | Avro through a schema registry and protobuf, and the framing that keeps them apart. |
 | [08-a-declared-pipeline](intermediate/08-a-declared-pipeline) | Two orders through three steps with a queue between each, and the one whose run ends early. |
 | [09-consumer-groups](intermediate/09-consumer-groups) | Four consumers against one consumer running four handlers, and the prefetch that makes the difference. |
+| [10-schema-evolution](intermediate/10-schema-evolution) | Two services on two versions of one Avro schema reading each other, and the two ways to get it wrong. |
 
 ### advanced
 

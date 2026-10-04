@@ -80,19 +80,22 @@ content type, for the same reason: arbitrary bytes parse as some protobuf messag
 more often than not, and a codec that volunteered there would report nonsense as
 a success.
 
-## What Go does differently, and it is worth knowing
+## What this consumer does not do, and it is worth knowing
 
-The consumer decodes with **the writer's schema**, fetched by identifier. So:
+The consumer here is built without `avro.ReaderSchema`, so it decodes with **the
+writer's schema**, fetched by identifier. So:
 
-- A field the consumer's schema does not have is **dropped**. That works, and it
+- A field the consumer's struct does not have is **dropped**. That works, and it
   is what this example shows.
 - A field the consumer's schema declares with a `default` that the writer never
   wrote is **not** filled in from that default. It arrives as the Go zero value.
 
-Java and Ruby resolve the writer's schema onto the reader's and do apply the
-default. If you are writing a Go consumer that depends on a defaulted field
-arriving populated, populate it yourself after decoding — a zero value and a
-default are not the same thing, and only one of them is what the schema promised.
+Pass `avro.ReaderSchema(schema)` to `avro.Registered` and Avro resolves the
+writer's schema onto the consumer's instead, applying the default — the
+behaviour Java, Python, Ruby and .NET give their readers.
+[intermediate/10-schema-evolution](../10-schema-evolution) shows both, side by
+side: a zero value and a default are not the same thing, and only one of them is
+what the schema promised.
 
 ## Protobuf without protoc
 
