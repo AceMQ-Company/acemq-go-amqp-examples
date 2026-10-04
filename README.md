@@ -52,6 +52,8 @@ ACEMQ_URL=amqps://guest:guest@broker:5671/ go run ./basic/01-publish-and-consume
 | [05-scheduling](intermediate/05-scheduling) | Reminders delivered later through a ladder of queues, with the accuracy it costs shown rather than claimed. |
 | [06-interceptors](intermediate/06-interceptors) | One tenancy rule on the connection: a publish stopped, a card number redacted, a delivery refused. |
 | [07-binary-codecs](intermediate/07-binary-codecs) | Avro through a schema registry and protobuf, and the framing that keeps them apart. |
+| [08-a-declared-pipeline](intermediate/08-a-declared-pipeline) | Two orders through three steps with a queue between each, and the one whose run ends early. |
+| [09-consumer-groups](intermediate/09-consumer-groups) | Four consumers against one consumer running four handlers, and the prefetch that makes the difference. |
 
 ### advanced
 
