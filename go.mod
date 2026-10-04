@@ -10,10 +10,10 @@ go 1.23.0
 
 require (
 	github.com/AceMQ-Company/acemq-go-amqp v0.9.1
-	github.com/AceMQ-Company/acemq-go-amqp/codec/avro v0.7.2
-	github.com/AceMQ-Company/acemq-go-amqp/codec/protobuf v0.7.2
-	github.com/AceMQ-Company/acemq-go-amqp/codec/toml v0.7.2
-	github.com/AceMQ-Company/acemq-go-amqp/codec/yaml v0.7.2
+	github.com/AceMQ-Company/acemq-go-amqp/codec/avro v0.9.1
+	github.com/AceMQ-Company/acemq-go-amqp/codec/protobuf v0.9.1
+	github.com/AceMQ-Company/acemq-go-amqp/codec/toml v0.9.1
+	github.com/AceMQ-Company/acemq-go-amqp/codec/yaml v0.9.1
 	google.golang.org/protobuf v1.36.10
 )
 
