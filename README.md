@@ -55,7 +55,7 @@ ACEMQ_URL=amqps://guest:guest@broker:5671/ go run ./basic/01-publish-and-consume
 | [08-a-declared-pipeline](intermediate/08-a-declared-pipeline) | Two orders through three steps with a queue between each, and the one whose run ends early. |
 | [09-consumer-groups](intermediate/09-consumer-groups) | Four consumers against one consumer running four handlers, and the prefetch that makes the difference. |
 | [10-schema-evolution](intermediate/10-schema-evolution) | Two services on two versions of one Avro schema reading each other, and the two ways to get it wrong. |
-| [11-graceful-shutdown](intermediate/11-graceful-shutdown) | Close finishing the work in hand, everything prefetched with it, and a grace period that runs out without losing a message. |
+| [11-graceful-shutdown](intermediate/11-graceful-shutdown) | Close finishing the work in hand, requeueing what was prefetched, and its DrainTimeout bound cutting off a stuck handler without losing a message. |
 
 ### advanced
 
@@ -77,7 +77,7 @@ needs a TLS listener holding certificates generated on this machine, so it comes
 with a compose profile and two commands:
 
 ```bash
-go run github.com/AceMQ-Company/acemq-go-amqp/cmd/acemq-certs@v0.9.1 --out certs --broker localhost
+go run github.com/AceMQ-Company/acemq-go-amqp/cmd/acemq-certs@v0.9.2 --out certs --broker localhost
 chmod 644 certs/server.key
 docker compose --profile tls up -d
 ```

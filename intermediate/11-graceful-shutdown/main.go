@@ -23,16 +23,16 @@
 // reason a deployment shows up as a spike of duplicate work when nobody arranged
 // otherwise.
 //
-// Consumer.Close is the arrangement. It stops new deliveries and waits for the
-// handlers to finish what they hold, so the work in hand is acknowledged rather
-// than redone. What it does not have is a deadline: it waits as long as the
-// handlers take. The bound comes from outside — a timer, and a context the
-// handlers watch — and this example runs the same shutdown three ways to show
-// what each part of that buys.
+// Consumer.Close is the arrangement. It stops delivery, hands back what arrived
+// but was never started, waits for the handlers already running — for at most
+// DrainTimeout, twenty seconds unless you say otherwise — and only then lets go
+// of the channel. This example runs the same shutdown four ways and checks what
+// each one leaves behind.
 package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -45,8 +45,14 @@ import (
 
 const queue = "go-shutdown-orders"
 
+const orders = 10
+
 // Long enough that a message is genuinely still being handled at shutdown.
 const work = 300 * time.Millisecond
+
+// The bound the last two runs set, far below the twenty-second default so the
+// example does not sit through it.
+const bound = 500 * time.Millisecond
 
 type Order struct {
 	ID string `json:"id"`
@@ -54,11 +60,20 @@ type Order struct {
 
 // outcome is what one shutdown left behind.
 type outcome struct {
-	drained  bool
+	err      error
 	took     time.Duration
-	handled  int64
-	gaveBack int64
-	left     int64
+	started  int64 // handlers that ran
+	finished int64 // handlers that accepted their message
+	left     int64 // on the queue afterwards
+	dlq      int64 // in {queue}.dlq afterwards
+}
+
+func (o outcome) stranded() int {
+	var timeout *acemq.DrainTimeoutError
+	if errors.As(o.err, &timeout) {
+		return timeout.Stranded
+	}
+	return 0
 }
 
 func main() {
@@ -71,148 +86,152 @@ func main() {
 	}
 	defer mq.Close()
 
-	// Enough time for the message in hand. This is the shape a service wants:
-	// SIGTERM, close within the grace period, exit.
-	enough := shutdown(ctx, mq, "enough time", 1, 10*time.Second)
+	log.Printf("Close waits up to acemq.DefaultDrainTimeout = %v for running handlers", acemq.DefaultDrainTimeout)
 
-	// The same, with a prefetch of five. Close finishes everything the broker
-	// had already handed this process, not only the message being worked on —
-	// so the grace period has to cover prefetch × handler time, not one handler.
-	prefetched := shutdown(ctx, mq, "prefetch 5", 5, 10*time.Second)
+	var started, finished atomic.Int64
+	reset := func() { started.Store(0); finished.Store(0) }
 
-	// And a grace period shorter than that. When the timer fires the handlers'
-	// context is cancelled, they give their messages back, and Close returns.
-	// Nothing is lost: what was not finished is on the queue for whoever starts
-	// next.
-	short := shutdown(ctx, mq, "not enough", 5, 500*time.Millisecond)
+	// A handler that does its work and accepts. It never looks at its context:
+	// at a graceful stop the message in hand should be finished, not abandoned.
+	finish := func(ctx context.Context, m acemq.Message[Order]) acemq.Ack {
+		started.Add(1)
+		time.Sleep(work)
+		finished.Add(1)
+		return acemq.Accept()
+	}
+
+	// 1. The shape a service wants: SIGTERM, the message in hand finishes, Close
+	// returns nil long before the default bound.
+	reset()
+	enough := shutdown(ctx, mq, "enough time", finish, &started, &finished, acemq.Prefetch(1))
+
+	// 2. The same with a prefetch of five. The broker has handed this process
+	// five messages, one of them running. Close runs that one and returns the
+	// other four to the queue unstarted — the drain is proportional to
+	// Concurrency, not Prefetch.
+	reset()
+	prefetched := shutdown(ctx, mq, "prefetch 5", finish, &started, &finished, acemq.Prefetch(5))
+
+	// 3. A handler that is stuck and does not watch its context — a blocking
+	// call with no context, a loop that never checks. Close still returns at
+	// the bound, reports it, and the message goes back to the broker.
+	reset()
+	release := make(chan struct{})
+	stuck := shutdown(ctx, mq, "stuck",
+		func(ctx context.Context, m acemq.Message[Order]) acemq.Ack {
+			started.Add(1)
+			<-release
+			return acemq.Accept()
+		}, &started, &finished, acemq.Prefetch(1), acemq.DrainTimeout(bound))
+	close(release) // let the stranded goroutine end; its ack has nowhere to go
+
+	// 4. A handler that gives up when the bound cancels its context, on a
+	// consumer with no retries and a queue with no x-dead-letter-exchange. The
+	// rejection is still filed in {queue}.dlq with its reason.
+	reset()
+	gaveUp := shutdown(ctx, mq, "gives up",
+		func(ctx context.Context, m acemq.Message[Order]) acemq.Ack {
+			started.Add(1)
+			select {
+			case <-time.After(10 * time.Second):
+				finished.Add(1)
+				return acemq.Accept()
+			case <-ctx.Done():
+				return acemq.Reject(fmt.Errorf("%s abandoned at shutdown: %w", m.Payload.ID, ctx.Err()))
+			}
+		}, &started, &finished, acemq.Prefetch(1), acemq.RetryWith(acemq.NoRetry()), acemq.DrainTimeout(bound))
 
 	// ---- what all of that has to say, checked ------------------------------
 
-	if !enough.drained || enough.handled != 1 || enough.left != 9 {
-		log.Fatalf("with enough time, the one message in hand should be finished and nine left: %+v", enough)
+	check := func(ok bool, claim string, o outcome) {
+		if !ok {
+			log.Fatalf("%s: %+v", claim, o)
+		}
 	}
-	if !prefetched.drained || prefetched.handled != 5 || prefetched.left != 5 {
-		log.Fatalf("Close should finish all five the broker had handed over: %+v", prefetched)
-	}
-	// Five handlers' worth of work at 300ms does not fit in 500ms. Which messages
-	// finished depends on the clock; that nothing went missing does not.
-	if short.drained || short.handled >= 5 || short.gaveBack == 0 {
-		log.Fatalf("a grace period shorter than the work should end with messages given back: %+v", short)
-	}
-	if short.handled+short.left != 10 {
-		log.Fatalf("handled %d and %d left on the queue: a message went missing", short.handled, short.left)
-	}
+	check(enough.err == nil && enough.finished == 1 && enough.left == orders-1 && enough.took < work,
+		"with enough time the message in hand should finish, nine stay queued, Close returns nil", enough)
+	check(prefetched.err == nil && prefetched.started == 1 && prefetched.finished == 1 && prefetched.left == orders-1,
+		"Close should run the one handler and requeue the four prefetched messages unstarted", prefetched)
+	check(errors.Is(stuck.err, acemq.ErrDrainTimeout) && stuck.stranded() == 1,
+		"a stuck handler should end Close with ErrDrainTimeout and Stranded 1", stuck)
+	check(stuck.took >= bound && stuck.took < bound+2*time.Second,
+		"Close should return at the bound plus the half-second grace, not wait for the stuck handler", stuck)
+	check(stuck.finished == 0 && stuck.left == orders && stuck.dlq == 0,
+		"the stuck handler's message should be back on the queue, not lost and not dead-lettered", stuck)
+	check(errors.Is(gaveUp.err, acemq.ErrDrainTimeout) && gaveUp.stranded() == 1,
+		"a handler running at the bound should be reported as stranded", gaveUp)
+	check(gaveUp.dlq == 1 && gaveUp.left == orders-1,
+		"a rejection made after the bound cancelled the handler should still reach the dead-letter queue", gaveUp)
 
 	for _, q := range []string{queue, acemq.DeadLetterQueue(queue), acemq.ParkedQueue(queue)} {
 		if err := mq.DeleteQueue(ctx, q); err != nil {
 			log.Fatal(err)
 		}
 	}
+	log.Print("every claim held")
 }
 
-// shutdown fills a queue, starts a consumer, and stops it half way through the
-// first message, giving it grace to finish.
-func shutdown(ctx context.Context, mq *acemq.Conn, label string, prefetch int, grace time.Duration) outcome {
-	if err := mq.DeleteQueue(ctx, queue); err != nil {
-		log.Fatal(err)
+// shutdown fills a queue with ten orders, starts a consumer, and closes it half
+// way through the first message.
+func shutdown(ctx context.Context, mq *acemq.Conn, label string, handle acemq.Handler[Order],
+	started, finished *atomic.Int64, opts ...acemq.ConsumeOption) outcome {
+	for _, q := range []string{queue, acemq.DeadLetterQueue(queue)} {
+		if err := mq.DeleteQueue(ctx, q); err != nil {
+			log.Fatal(err)
+		}
 	}
+	// A plain queue: no x-dead-letter-exchange behind it, so the only route to
+	// {queue}.dlq is the one the consumer publishes itself.
 	if err := mq.DeclareQueue(ctx, queue); err != nil {
 		log.Fatal(err)
 	}
 	publisher := acemq.NewPublisher[Order](mq, "", queue)
-	for i := 1; i <= 10; i++ {
+	for i := 1; i <= orders; i++ {
 		if err := publisher.Send(ctx, Order{ID: fmt.Sprintf("o-%d", i)}); err != nil {
 			log.Fatal(err)
 		}
 	}
 
-	// The handlers' context, and the one thing that bounds them. It is not the
-	// context SIGTERM cancels: cancelling the handlers the moment the signal
-	// arrives is the abrupt stop this is trying to avoid. It is cancelled when
-	// the grace period runs out, and not before.
-	handlerCtx, giveUp := context.WithCancel(ctx)
-	defer giveUp()
-
-	var handled, gaveBack atomic.Int64
-	started := make(chan struct{}, 10)
-
-	consumer, err := acemq.Consume(handlerCtx, mq, queue,
-		func(ctx context.Context, m acemq.Message[Order]) acemq.Ack {
-			started <- struct{}{}
-			select {
-			case <-time.After(work):
-				handled.Add(1)
-				return acemq.Accept()
-			case <-ctx.Done():
-				// Out of time. Asking for a retry on a context that has been
-				// cancelled is how a handler hands a message back: the library
-				// will not republish on it, so the delivery is returned to the
-				// broker unacknowledged, exactly as it arrived.
-				//
-				// So long as the retry policy has an attempt left, which with
-				// none configured it always does. On the last attempt Retry
-				// means dead-letter, that publish is refused the same way, and
-				// the delivery is rejected without requeue — see the README.
-				gaveBack.Add(1)
-				return acemq.Retry(ctx.Err())
-			}
-		}, acemq.Prefetch(prefetch))
+	// The handlers' context is not the one SIGTERM would cancel. Close cancels
+	// a child of it at the drain bound, and not before.
+	consumer, err := acemq.Consume(context.Background(), mq, queue, handle, opts...)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// SIGTERM arrives here, with the first message half handled.
-	<-started
+	for started.Load() == 0 {
+		time.Sleep(5 * time.Millisecond)
+	}
 	time.Sleep(work / 2)
 
 	began := time.Now()
-	drained, err := closeWithin(consumer, grace, giveUp)
-	if err != nil {
-		log.Fatal(err)
-	}
+	closeErr := consumer.Close()
 	took := time.Since(began)
+	if closeErr != nil && !errors.Is(closeErr, acemq.ErrDrainTimeout) {
+		log.Fatal(closeErr)
+	}
 
-	// The queue settles a moment after the channel closes; wait for every
-	// message to be accounted for rather than reading a count mid-flight.
-	var left int64
+	// The queues settle a moment after the channel closes; wait for every order
+	// to be accounted for rather than reading a count mid-flight.
+	var left, dlq int64
 	for deadline := time.Now().Add(5 * time.Second); time.Now().Before(deadline); {
 		if left, err = mq.MessageCount(ctx, queue); err != nil {
 			log.Fatal(err)
 		}
-		if handled.Load()+left == 10 {
+		if dlq, err = mq.MessageCount(ctx, acemq.DeadLetterQueue(queue)); err != nil {
+			log.Fatal(err)
+		}
+		if finished.Load()+left+dlq == orders {
 			break
 		}
 		time.Sleep(50 * time.Millisecond)
 	}
 
-	got := outcome{drained, took, handled.Load(), gaveBack.Load(), left}
-	log.Printf("%-11s grace=%-5v drained=%-5v in %4dms  handled=%d gave back=%d, %d left on the queue",
-		label, grace, got.drained, got.took.Milliseconds(), got.handled, got.gaveBack, got.left)
+	got := outcome{closeErr, took, started.Load(), finished.Load(), left, dlq}
+	log.Printf("%-11s Close in %4dms  stranded=%d  ran=%d finished=%d  queue=%d dlq=%d",
+		label, took.Milliseconds(), got.stranded(), got.started, got.finished, got.left, got.dlq)
 	return got
-}
-
-// closeWithin closes a consumer, waiting at most grace for its handlers.
-//
-// Close has no deadline of its own. Run in the background it can be raced
-// against a timer, and when the timer wins the handlers' context is cancelled so
-// they stop and give back what they hold, and Close then returns promptly.
-//
-// That last step depends on the handlers watching their context. One that does
-// not — a blocking call with no context, a loop that never checks — holds Close
-// for as long as it runs, and no timer here can change that. In a real service
-// the process exiting is then the bound, and the broker redelivers whatever was
-// unacknowledged.
-func closeWithin(consumer *acemq.Consumer, grace time.Duration, giveUp context.CancelFunc) (bool, error) {
-	closed := make(chan error, 1)
-	go func() { closed <- consumer.Close() }()
-
-	select {
-	case err := <-closed:
-		return true, err
-	case <-time.After(grace):
-		giveUp()
-		return false, <-closed
-	}
 }
 
 // brokerURL is the compose broker unless ACEMQ_URL names another.

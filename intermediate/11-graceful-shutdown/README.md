@@ -1,17 +1,23 @@
 # intermediate/11 — graceful shutdown
 
 What happens to the message being handled when the process is told to stop, and
-how to put a bound on the wait.
+what `Close` does when a handler will not stop in time.
 
 ## What it shows
 
-- **`Consumer.Close` waits for in-flight handlers**, so the message in hand is
-  acknowledged rather than redelivered to somebody else.
-- **It finishes everything already prefetched**, not only the message being
-  worked on — which is what the grace period actually has to cover.
-- **It has no deadline of its own.** The bound is a timer and a context the
-  handlers watch; when it fires they give their messages back, and nothing is
-  lost.
+- **`Consumer.Close` waits for the handler that is running**, so the message in
+  hand is acknowledged rather than redelivered to somebody else.
+- **It does not run what was prefetched but never started.** Those go back to
+  the queue, so the drain is proportional to `Concurrency`, not `Prefetch`.
+- **It is bounded.** `DrainTimeout`, twenty seconds by default
+  (`acemq.DefaultDrainTimeout`), and at the bound it returns an error matching
+  `acemq.ErrDrainTimeout` with `Stranded` counting the handlers still running —
+  even when a handler ignores its context.
+- **A handler that gives up at the bound still dead-letters.** The rejection is
+  filed in `{queue}.dlq` with its reason, on a queue with no broker-side
+  dead-letter exchange behind it.
+
+The example checks each of these and exits non-zero if one stops holding.
 
 ## Running it
 
@@ -23,54 +29,67 @@ go run ./intermediate/11-graceful-shutdown
 ## What to look for
 
 ```
-enough time grace=10s   drained=true  in  149ms  handled=1 gave back=0, 9 left on the queue
-prefetch 5  grace=10s   drained=true  in 1358ms  handled=5 gave back=0, 5 left on the queue
-not enough  grace=500ms drained=false in  501ms  handled=2 gave back=3, 8 left on the queue
+Close waits up to acemq.DefaultDrainTimeout = 20s for running handlers
+enough time Close in  144ms  stranded=0  ran=1 finished=1  queue=9 dlq=0
+prefetch 5  Close in  146ms  stranded=0  ran=1 finished=1  queue=9 dlq=0
+stuck       Close in 1005ms  stranded=1  ran=1 finished=0  queue=10 dlq=0
+gives up    Close in  502ms  stranded=1  ran=1 finished=0  queue=9 dlq=1
+every claim held
 ```
 
-Each run puts ten orders on a queue, starts a consumer, and asks it to stop half
+Each run puts ten orders on a queue, starts a consumer, and calls `Close` half
 way through the first 300 ms message.
 
 **`enough time`** is the shape a service wants. Close returned as soon as the
 message in hand was finished, about 150 ms later, and the other nine were never
 taken.
 
-**`prefetch 5`** is the line people do not expect. The broker had already handed
-this process five messages, and Close finished all of them before returning —
-1.36 s, not 150 ms. A message delivered into the process is work Close considers
-in hand. Size the grace period for **prefetch × handler time ÷ concurrency**, or
-lower the prefetch on consumers whose handlers are slow.
+**`prefetch 5`** looks the same, and that is the point. The broker had handed
+this process five messages; Close stopped delivery, ran the one that had a
+handler, and put the four that did not back on the queue, flagged redelivered,
+for whoever starts next. Before 0.9.2 it ran all five, so the grace period had to
+cover prefetch × handler time. Now it covers the handlers actually running.
 
-**`not enough`** is the same consumer with half a second. When the timer fired,
-the handlers' context was cancelled: the one running gave its message back, so
-did the ones queued behind it, and Close returned at 501 ms. Exactly which
-messages finished depends on the clock; that `handled + left` is ten does not,
-and the example asserts it.
+**`stuck`** is a handler that never looks at its context — a blocking call with
+no context, a loop that never checks. With `DrainTimeout(500ms)` Close waited
+the bound, cancelled the handlers' context, gave them the library's half-second
+to settle, released the channel and returned. The message was never
+acknowledged, so the broker put it back: ten on the queue, nothing lost, nothing
+dead-lettered.
 
-## The bound comes from outside
+**`gives up`** watches its context and rejects when the bound cancels it, on a
+consumer with `RetryWith(acemq.NoRetry())`. The rejection lands in
+`{queue}.dlq`. Before 0.9.2 that publish was refused on the cancelled context and
+the delivery rejected without requeue — on a queue like this one, with no
+`x-dead-letter-exchange`, the message was gone.
 
-Java's consumer has `drain(Duration)`, which waits with a deadline and says
-whether it made it. Go's `Close` waits as long as the handlers take. The bound is
-eight lines:
+## Reading the result of `Close`
 
 ```go
-func closeWithin(consumer *acemq.Consumer, grace time.Duration, giveUp context.CancelFunc) (bool, error) {
-	closed := make(chan error, 1)
-	go func() { closed <- consumer.Close() }()
+consumer, err := acemq.Consume(handlers, mq, "orders", handle,
+	acemq.DrainTimeout(15*time.Second))
 
-	select {
-	case err := <-closed:
-		return true, err
-	case <-time.After(grace):
-		giveUp() // cancels the context the handlers were given
-		return false, <-closed
-	}
+// ...
+
+if err := consumer.Close(); errors.Is(err, acemq.ErrDrainTimeout) {
+	var timeout *acemq.DrainTimeoutError
+	errors.As(err, &timeout)
+	log.Printf("%d handler(s) on %s cut off at shutdown; their messages will be redelivered",
+		timeout.Stranded, timeout.Queue)
 }
 ```
 
-`false` is the signal worth logging and alerting on. It says the grace period is
-shorter than the work in hand, or a handler is stuck, and both are worth knowing
-before they turn into a redelivery spike nobody can explain.
+A drain timeout is the signal worth logging and alerting on. It says the bound
+is shorter than the work in hand, or a handler is stuck, and both are worth
+knowing before they turn into a redelivery spike nobody can explain.
+`DrainTimeout(0)` waits without a bound, the behaviour before 0.9.2.
+
+Set the bound **comfortably under** whatever kills the process —
+`terminationGracePeriodSeconds` (thirty by default), `TimeoutStopSec`,
+`docker stop -t` (ten by default) — so the drain ends in your own log line
+rather than in SIGKILL. `Conn.Close` and `ConsumerGroup.Close` close their
+consumers side by side, so the whole shutdown takes one bound, not one per
+consumer.
 
 ## Two contexts, not one
 
@@ -78,58 +97,28 @@ before they turn into a redelivery spike nobody can explain.
 signals, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, os.Interrupt)
 defer stop()
 
-handlers, giveUp := context.WithCancel(context.Background())
+handlers, release := context.WithCancel(context.Background())
+defer release()
 consumer, err := acemq.Consume(handlers, mq, "orders", handle)
 
 <-signals.Done()
-if drained, _ := closeWithin(consumer, 25*time.Second, giveUp); !drained {
-	log.Print("shut down with work still in hand; it will be redelivered")
-}
+stop() // a second Ctrl-C now kills the process
+err = consumer.Close()
 ```
 
 The handlers must **not** be given the context SIGTERM cancels. If they were,
 the signal would cancel every handler the moment it arrived — the abrupt stop
-this is trying to avoid, with extra steps. They get their own, cancelled when the
-grace period runs out and not before.
-
-Set the grace **slightly under** `terminationGracePeriodSeconds`, so the timer
-loses the race to your own log line rather than to SIGKILL.
-
-## Giving a message back
-
-```go
-case <-ctx.Done():
-	return acemq.Retry(ctx.Err())
-```
-
-A handler out of time returns `Retry`. The library will not republish on a
-cancelled context, so the delivery is returned to the broker unacknowledged,
-exactly as it arrived, for whoever starts next. It does not use up an attempt
-and it does not go round a retry ladder.
-
-**One exception, and it can lose the message: the last attempt.** When the
-retry policy has no attempts left — always, under `acemq.NoRetry()` — `Retry`
-means "dead-letter it", the engine's republish to `{queue}.dlq` is refused on the
-cancelled context like any other, and the delivery is *rejected without requeue*
-to the broker's own dead-lettering. On a queue declared without
-`x-dead-letter-exchange`, that is nowhere: the message is gone. This example's
-consumer has no retry policy, so every attempt has another behind it. If yours
-has one, give the source queue a broker-side dead-letter exchange as the
-backstop, or make sure handlers finish inside the grace period.
-
-## What no timer can fix
-
-The bound only works for handlers that watch their context. One that does not —
-a blocking call with no context, a loop that never checks — holds Close for as
-long as it runs. In a real service the process exiting is then the bound, and
-the broker redelivers whatever was unacknowledged.
-
-`Conn.Close` closes every consumer on the connection the same way, so it waits
-for the same handlers, without a deadline either.
+this is trying to avoid. `Close` cancels the handlers' context itself, at the
+bound and not before.
 
 ## What redelivery costs you
 
 Nothing, if the handler is idempotent. Everything, if it charges a card. A
-graceful shutdown reduces duplicates; it does not eliminate them — a power cut
-has no SIGTERM. See
+graceful shutdown reduces duplicates; it does not eliminate them — a stranded
+handler's message is redelivered, a handler that gives up late may find its
+dead letter filed and its acknowledgement refused by the closed channel, and a
+power cut has no SIGTERM. See
 [intermediate/02-idempotent-consumer](../02-idempotent-consumer).
+
+The library's own account of all of this is
+[docs/lifecycle.md](https://github.com/AceMQ-Company/acemq-go-amqp/blob/main/docs/lifecycle.md).

@@ -86,12 +86,14 @@ interface shows four named rows on the queue rather than four identical ones, an
 
 ## What Go does not have
 
-Java's group can be resized while it runs (`scaleTo`) and drained against a
-deadline (`drain(Duration)`). Go's is fixed at the size it was started with —
-start a new group and close the old one to change it — and `Close` waits for
-running handlers without a deadline of its own.
-[intermediate/11-graceful-shutdown](../11-graceful-shutdown) shows how to put a
-bound on that wait from the outside.
+Java's group can be resized while it runs (`scaleTo`). Go's is fixed at the
+size it was started with — start a new group and close the old one to change it.
+
+Draining against a deadline it does have: `acemq.DrainTimeout` passed to
+`NewConsumerGroup` bounds `Close`, twenty seconds by default, and the members
+close side by side, so the group takes one bound rather than one per member.
+[intermediate/11-graceful-shutdown](../11-graceful-shutdown) shows what happens
+at that bound.
 
 ## A group is not a partition
 
