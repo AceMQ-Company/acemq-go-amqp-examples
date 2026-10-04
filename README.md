@@ -55,6 +55,7 @@ ACEMQ_URL=amqps://guest:guest@broker:5671/ go run ./basic/01-publish-and-consume
 | [08-a-declared-pipeline](intermediate/08-a-declared-pipeline) | Two orders through three steps with a queue between each, and the one whose run ends early. |
 | [09-consumer-groups](intermediate/09-consumer-groups) | Four consumers against one consumer running four handlers, and the prefetch that makes the difference. |
 | [10-schema-evolution](intermediate/10-schema-evolution) | Two services on two versions of one Avro schema reading each other, and the two ways to get it wrong. |
+| [11-graceful-shutdown](intermediate/11-graceful-shutdown) | Close finishing the work in hand, everything prefetched with it, and a grace period that runs out without losing a message. |
 
 ### advanced
 
@@ -115,7 +116,7 @@ Go 1.23 or later, and Docker. RabbitMQ **3.13 or 4.x**, the range the library
 supports; `compose.yaml` brings up 4.x and CI runs every example against both.
 
 One exception: `advanced/06-tracing` needs **Go 1.25**. It is a module of its
-own for that reason, so it asks nothing of the other eighteen — which still
+own for that reason, so it asks nothing of the other twenty-four — which still
 build on 1.23, checked with a 1.23 toolchain on every push. The `telemetry/otel`
 module it imports raised its floor to 1.25 when it took OpenTelemetry 1.46, so
 anyone tracing already needs it.

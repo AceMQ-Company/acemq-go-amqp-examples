@@ -52,7 +52,7 @@ jobs:
           # example that needs a newer Go than the library is an example
           # somebody cannot run, which is why the one that genuinely does was
           # moved out of the root module instead of raising the floor for the
-          # other eighteen.
+          # other twenty-four.
           go-version: '1.25'
 
       - name: Check the formatting
@@ -152,13 +152,13 @@ jobs:
         # paused", which reads like a defect in the example that reported it
         # rather than like a neighbour holding an alarm. Ordering would not save
         # it either: the loop below runs advanced before basic and intermediate,
-        # so the alarm-raising example runs seventh of nineteen whatever it is
+        # so the alarm-raising example runs seventh of twenty-five whatever it is
         # numbered.
         #
         # The example puts the watermark back in a deferred call that runs even
         # when it fails, so this container is not sacrificial. It is here so that
         # the one case that defeats a deferred restore -- the process being
-        # killed outright -- costs this job one broker rather than twelve
+        # killed outright -- costs this job one broker rather than eighteen
         # examples.
         run: |
           docker run -d --name alarm-broker \
@@ -265,8 +265,8 @@ jobs:
         # running anything at all, which is the quiet way a suite stops testing.
         run: |
           count=$(find basic intermediate advanced -name main.go | wc -l | tr -d ' ')
-          if [ "$count" -lt 20 ]; then
-            echo "::error::found only $count examples; expected at least 20"
+          if [ "$count" -lt 25 ]; then
+            echo "::error::found only $count examples; expected at least 25"
             exit 1
           fi
           echo "$count examples"
