@@ -86,7 +86,7 @@ needs a TLS listener holding certificates generated on this machine, so it comes
 with a compose profile and two commands:
 
 ```bash
-go run github.com/AceMQ-Company/acemq-go-amqp/cmd/acemq-certs@v0.9.3 --out certs --broker localhost
+go run github.com/AceMQ-Company/acemq-go-amqp/cmd/acemq-certs@v0.9.4 --out certs --broker localhost
 chmod 644 certs/server.key
 docker compose --profile tls up -d
 ```

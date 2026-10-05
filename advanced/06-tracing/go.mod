@@ -15,8 +15,8 @@ module github.com/AceMQ-Company/acemq-go-amqp-examples/advanced/06-tracing
 go 1.25.0
 
 require (
-	github.com/AceMQ-Company/acemq-go-amqp v0.9.3
-	github.com/AceMQ-Company/acemq-go-amqp/telemetry/otel v0.9.3
+	github.com/AceMQ-Company/acemq-go-amqp v0.9.4
+	github.com/AceMQ-Company/acemq-go-amqp/telemetry/otel v0.9.4
 	go.opentelemetry.io/otel/sdk v1.46.0
 	go.opentelemetry.io/otel/trace v1.46.0
 )

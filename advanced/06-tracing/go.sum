@@ -1,7 +1,7 @@
-github.com/AceMQ-Company/acemq-go-amqp v0.9.3 h1:bhAwyya6Wjbor9QDIiwNQJ+lPLszvCf9hzFZyJTdiOA=
-github.com/AceMQ-Company/acemq-go-amqp v0.9.3/go.mod h1:m6ufhu0fBuybBmEd/Rxep5b9MStuWwVqZqcTQK4zO8A=
-github.com/AceMQ-Company/acemq-go-amqp/telemetry/otel v0.9.3 h1:PEvPNwrK399gAj5FXzxdP+X54qpJGEZWQpFHN5UmGuU=
-github.com/AceMQ-Company/acemq-go-amqp/telemetry/otel v0.9.3/go.mod h1:W0XL+wCVUiFvOLgMQBEgzHdu8LwcT8wQwzwJQXOdwQU=
+github.com/AceMQ-Company/acemq-go-amqp v0.9.4 h1:YYu7fBU3asZFAup+1AaehSzIzJxkk9pymCeydCo7YhI=
+github.com/AceMQ-Company/acemq-go-amqp v0.9.4/go.mod h1:m6ufhu0fBuybBmEd/Rxep5b9MStuWwVqZqcTQK4zO8A=
+github.com/AceMQ-Company/acemq-go-amqp/telemetry/otel v0.9.4 h1:GH7ZEkKOUJvO+VnJ+xgU7FUoblgzK/FOvyee/jEjATI=
+github.com/AceMQ-Company/acemq-go-amqp/telemetry/otel v0.9.4/go.mod h1:1k2+zGXuBhzrIWfpl/HdfeBX0vNgv/1HrYg54/HUkko=
 github.com/cespare/xxhash/v2 v2.3.0 h1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=
 github.com/cespare/xxhash/v2 v2.3.0/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
 github.com/go-logr/logr v1.2.2/go.mod h1:jdQByPbusPIv2/zmleS9BjJVeZ6kBagPoEUsqbVz/1A=
