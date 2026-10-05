@@ -91,6 +91,13 @@ jobs:
           go build ./...
           go vet ./...
 
+      - name: Build and vet the order fulfilment app
+        # A module of its own as well: its SQLite driver needs 1.25.
+        working-directory: apps/01-order-fulfilment
+        run: |
+          go build ./...
+          go vet ./...
+
       - name: Start a broker
         run: |
           docker run -d --name broker \
@@ -242,7 +249,7 @@ jobs:
           failed=""
           # Every directory holding a main.go, found rather than listed, so an
           # example added without touching this file is still run.
-          for dir in $(find basic intermediate advanced -name main.go -exec dirname {} \; | sort); do
+          for dir in $(find basic intermediate advanced apps -name main.go -exec dirname {} \; | sort); do
             echo "::group::$dir"
             # Run from inside the directory rather than as ./$dir from here.
             # Both resolve the same way for an example in the root module, and
@@ -264,9 +271,9 @@ jobs:
         # A find that matches nothing would make the step above pass without
         # running anything at all, which is the quiet way a suite stops testing.
         run: |
-          count=$(find basic intermediate advanced -name main.go | wc -l | tr -d ' ')
-          if [ "$count" -lt 25 ]; then
-            echo "::error::found only $count examples; expected at least 25"
+          count=$(find basic intermediate advanced apps -name main.go | wc -l | tr -d ' ')
+          if [ "$count" -lt 26 ]; then
+            echo "::error::found only $count examples; expected at least 26"
             exit 1
           fi
           echo "$count examples"

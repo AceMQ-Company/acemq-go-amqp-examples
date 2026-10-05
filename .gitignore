@@ -6,3 +6,4 @@
 
 # The binary `go build` leaves in the module directory, named after it.
 advanced/06-tracing/06-tracing
+apps/01-order-fulfilment/01-order-fulfilment

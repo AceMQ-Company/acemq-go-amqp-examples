@@ -70,6 +70,15 @@ ACEMQ_URL=amqps://guest:guest@broker:5671/ go run ./basic/01-publish-and-consume
 | [07-health-when-the-broker-blocks](advanced/07-health-when-the-broker-blocks) | A real memory alarm, and health answering `up` in four microseconds with the broker's reason — beside a round trip on the same connection that never answers at all. |
 | [08-a-standing-load-something-else-can-watch](advanced/08-a-standing-load-something-else-can-watch) | A load that does not finish, printing one JSON reading per second — so a fault drill can read what the client saw rather than what the broker did. |
 
+### apps
+
+Several patterns at once, which is where a library's features stop being
+demonstrated one at a time and start having to agree with each other.
+
+| | |
+|---|---|
+| [01-order-fulfilment](apps/01-order-fulfilment) | Five services, one broker, no shared database: an outbox at the edge, a charge that refuses a duplicate, a flaky warehouse retried, and a timeline rebuilt from one correlation id. Checked against the Java services on the same broker. |
+
 ## The two that need a broker of their own
 
 [advanced/05-development-certificates](advanced/05-development-certificates)
@@ -115,11 +124,12 @@ alive, and the service consumes nothing while saying nothing.
 Go 1.23 or later, and Docker. RabbitMQ **3.13 or 4.x**, the range the library
 supports; `compose.yaml` brings up 4.x and CI runs every example against both.
 
-One exception: `advanced/06-tracing` needs **Go 1.25**. It is a module of its
-own for that reason, so it asks nothing of the other twenty-four — which still
-build on 1.23, checked with a 1.23 toolchain on every push. The `telemetry/otel`
-module it imports raised its floor to 1.25 when it took OpenTelemetry 1.46, so
-anyone tracing already needs it.
+Two exceptions need **Go 1.25**, and each is a module of its own for that
+reason, so neither asks anything of the other twenty-four — which still build on
+1.23, checked with a 1.23 toolchain on every push. `advanced/06-tracing` imports
+`telemetry/otel`, which raised its floor to 1.25 when it took OpenTelemetry 1.46,
+so anyone tracing already needs it. `apps/01-order-fulfilment` uses the pure-Go
+SQLite driver, which needs it too.
 
 ## How these stay honest
 
