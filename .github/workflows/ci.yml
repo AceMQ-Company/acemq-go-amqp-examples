@@ -136,7 +136,7 @@ jobs:
         # commands its README gives you, run here for the same reason: a TLS
         # broker cannot be started until the certificates it serves exist.
         run: |
-          go run github.com/AceMQ-Company/acemq-go-amqp/cmd/acemq-certs@v0.9.4 \
+          go run github.com/AceMQ-Company/acemq-go-amqp/cmd/acemq-certs@v0.9.5 \
             --out certs --broker localhost --days 1
           # The generator writes keys 0600, which is right for a key and wrong
           # for a container running as another user. RabbitMQ reports an
