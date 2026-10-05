@@ -128,8 +128,8 @@ jobs:
         # fails with PRECONDITION_FAILED. Both names are contracts, so neither
         # is renamed; the app gets a virtual host of its own instead.
         run: |
-          docker exec broker rabbitmqctl add_vhost fulfilment
-          docker exec broker rabbitmqctl set_permissions -p fulfilment guest ".*" ".*" ".*"
+          docker exec -e HOME=/var/lib/rabbitmq broker rabbitmqctl add_vhost fulfilment
+          docker exec -e HOME=/var/lib/rabbitmq broker rabbitmqctl set_permissions -p fulfilment guest ".*" ".*" ".*"
 
       - name: Certificates, and a broker that speaks TLS
         # The one example that needs a listener of its own. These are the two

@@ -83,8 +83,8 @@ an earlier run that was killed cannot be counted by this one.
 ### Give it a virtual host of its own
 
 ```bash
-docker compose exec broker rabbitmqctl add_vhost fulfilment
-docker compose exec broker rabbitmqctl set_permissions -p fulfilment guest ".*" ".*" ".*"
+docker compose exec -e HOME=/var/lib/rabbitmq broker rabbitmqctl add_vhost fulfilment
+docker compose exec -e HOME=/var/lib/rabbitmq broker rabbitmqctl set_permissions -p fulfilment guest ".*" ".*" ".*"
 ACEMQ_FULFILMENT_URL=amqp://guest:guest@localhost:5672/fulfilment go run .
 ```
 
