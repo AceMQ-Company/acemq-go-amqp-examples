@@ -119,6 +119,18 @@ jobs:
           docker logs broker
           exit 1
 
+      - name: A virtual host for the order fulfilment app
+        # apps/01-order-fulfilment owns a topic exchange called "fulfilment",
+        # the Java app's name and so the name the two languages share.
+        # intermediate/08-a-declared-pipeline declares a direct exchange of the
+        # same name, after the same Java example, and an exchange cannot be
+        # redeclared as another kind: on one virtual host whichever runs second
+        # fails with PRECONDITION_FAILED. Both names are contracts, so neither
+        # is renamed; the app gets a virtual host of its own instead.
+        run: |
+          docker exec broker rabbitmqctl add_vhost fulfilment
+          docker exec broker rabbitmqctl set_permissions -p fulfilment guest ".*" ".*" ".*"
+
       - name: Certificates, and a broker that speaks TLS
         # The one example that needs a listener of its own. These are the two
         # commands its README gives you, run here for the same reason: a TLS
@@ -201,6 +213,8 @@ jobs:
           # its node, so this example must never be pointed at the shared broker.
           ACEMQ_ALARM_URL: amqp://guest:guest@localhost:5673/
           ACEMQ_ALARM_CONTAINER: alarm-broker
+          # The order fulfilment app, on the virtual host created above.
+          ACEMQ_FULFILMENT_URL: amqp://guest:guest@localhost:5672/fulfilment
           # The recovery example waits for somebody to restart the broker.
           # Nobody is standing by here, so it runs briefly and proves it
           # publishes and consumes rather than proving it recovers — the

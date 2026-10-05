@@ -386,10 +386,15 @@ func waitFor(ctx context.Context, done func() bool) error {
 	return nil
 }
 
-// brokerURL is the compose broker unless ACEMQ_URL names another.
+// brokerURL is ACEMQ_FULFILMENT_URL, then ACEMQ_URL, then the compose broker.
+//
+// A variable of its own because this app wants a virtual host of its own: see
+// the README for the exchange it would otherwise fight over.
 func brokerURL() string {
-	if url := os.Getenv("ACEMQ_URL"); url != "" {
-		return url
+	for _, name := range []string{"ACEMQ_FULFILMENT_URL", "ACEMQ_URL"} {
+		if url := os.Getenv(name); url != "" {
+			return url
+		}
 	}
 	return "amqp://guest:guest@localhost:5672/"
 }

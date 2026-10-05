@@ -78,12 +78,26 @@ message id, and refuses it at the claim. Any assertion that breaks ends the run
 with a non-zero exit, which is how CI runs it.
 
 It deletes the four service queues before it starts, so a message left behind by
-an earlier run that was killed cannot be counted by this one. Point it at a
-broker of its own, or a virtual host of its own:
+an earlier run that was killed cannot be counted by this one.
+
+### Give it a virtual host of its own
 
 ```bash
-ACEMQ_URL=amqp://guest:guest@localhost:5672/fulfilment go run .
+docker compose exec broker rabbitmqctl add_vhost fulfilment
+docker compose exec broker rabbitmqctl set_permissions -p fulfilment guest ".*" ".*" ".*"
+ACEMQ_FULFILMENT_URL=amqp://guest:guest@localhost:5672/fulfilment go run .
 ```
+
+Not tidiness. The exchange is called `fulfilment` because the Java app's is, and
+[intermediate/08](../../intermediate/08-a-declared-pipeline) declares a *direct*
+exchange of the same name, after a different Java example. An exchange cannot be
+redeclared as another kind, so on one virtual host whichever of the two runs
+second fails with `PRECONDITION_FAILED - inequivalent arg 'type'`. Both names are
+somebody's contract, so neither is renamed. CI found this the first time it ran
+both, and runs this app on a virtual host of its own for the same reason.
+
+`ACEMQ_FULFILMENT_URL` wins over `ACEMQ_URL`, so the other examples can keep
+using the default virtual host beside it.
 
 ## It talks to the Java one
 
