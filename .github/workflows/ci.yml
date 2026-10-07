@@ -98,6 +98,14 @@ jobs:
           go build ./...
           go vet ./...
 
+      - name: Build and vet the policy administration app
+        # A module of its own for the same reason: one SQLite database shared by
+        # its modules. apps/03-ledger needs no database and is in the root module.
+        working-directory: apps/02-policy-administration
+        run: |
+          go build ./...
+          go vet ./...
+
       - name: Start a broker
         run: |
           docker run -d --name broker \
@@ -130,6 +138,16 @@ jobs:
         run: |
           docker exec -e HOME=/var/lib/rabbitmq broker rabbitmqctl add_vhost fulfilment
           docker exec -e HOME=/var/lib/rabbitmq broker rabbitmqctl set_permissions -p fulfilment guest ".*" ".*" ".*"
+
+      - name: Virtual hosts for the policy administration and ledger apps
+        # Both empty their own queues before they run -- apps/02 before every
+        # scenario, apps/03 its journal once -- and deletions belong where
+        # nothing else lives.
+        run: |
+          for vhost in policy ledger; do
+            docker exec -e HOME=/var/lib/rabbitmq broker rabbitmqctl add_vhost "$vhost"
+            docker exec -e HOME=/var/lib/rabbitmq broker rabbitmqctl set_permissions -p "$vhost" guest ".*" ".*" ".*"
+          done
 
       - name: Certificates, and a broker that speaks TLS
         # The one example that needs a listener of its own. These are the two
@@ -215,6 +233,9 @@ jobs:
           ACEMQ_ALARM_CONTAINER: alarm-broker
           # The order fulfilment app, on the virtual host created above.
           ACEMQ_FULFILMENT_URL: amqp://guest:guest@localhost:5672/fulfilment
+          # The policy administration and ledger apps, on theirs.
+          ACEMQ_POLICY_URL: amqp://guest:guest@localhost:5672/policy
+          ACEMQ_LEDGER_URL: amqp://guest:guest@localhost:5672/ledger
           # The recovery example waits for somebody to restart the broker.
           # Nobody is standing by here, so it runs briefly and proves it
           # publishes and consumes rather than proving it recovers — the
@@ -286,8 +307,8 @@ jobs:
         # running anything at all, which is the quiet way a suite stops testing.
         run: |
           count=$(find basic intermediate advanced apps -name main.go | wc -l | tr -d ' ')
-          if [ "$count" -lt 26 ]; then
-            echo "::error::found only $count examples; expected at least 26"
+          if [ "$count" -lt 28 ]; then
+            echo "::error::found only $count examples; expected at least 28"
             exit 1
           fi
           echo "$count examples"

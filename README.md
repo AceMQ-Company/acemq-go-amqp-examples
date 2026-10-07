@@ -78,6 +78,8 @@ demonstrated one at a time and start having to agree with each other.
 | | |
 |---|---|
 | [01-order-fulfilment](apps/01-order-fulfilment) | Five services, one broker, no shared database: an outbox at the edge, a charge that refuses a duplicate, a flaky warehouse retried, and a timeline rebuilt from one correlation id. Checked against the Java services on the same broker. |
+| [02-policy-administration](apps/02-policy-administration) | One deployable, six modules, one database, and no module that imports another: an outbox that is still necessary, an underwriting pipeline, a claim check, a premium charged once from three copies, and a lookup that times out rather than guessing. |
+| [03-ledger](apps/03-ledger) | An event-sourced ledger on a stream: balances rebuilt from the journal on every start, projections from offset zero that agree with the writer, and a restart that changes nothing. |
 
 ## The two that need a broker of their own
 
@@ -124,12 +126,12 @@ alive, and the service consumes nothing while saying nothing.
 Go 1.23 or later, and Docker. RabbitMQ **3.13 or 4.x**, the range the library
 supports; `compose.yaml` brings up 4.x and CI runs every example against both.
 
-Two exceptions need **Go 1.25**, and each is a module of its own for that
-reason, so neither asks anything of the other twenty-four — which still build on
+Three exceptions need **Go 1.25**, and each is a module of its own for that
+reason, so none asks anything of the other twenty-five — which still build on
 1.23, checked with a 1.23 toolchain on every push. `advanced/06-tracing` imports
 `telemetry/otel`, which raised its floor to 1.25 when it took OpenTelemetry 1.46,
-so anyone tracing already needs it. `apps/01-order-fulfilment` uses the pure-Go
-SQLite driver, which needs it too.
+so anyone tracing already needs it. `apps/01-order-fulfilment` and
+`apps/02-policy-administration` use the pure-Go SQLite driver, which needs it too.
 
 ## How these stay honest
 
