@@ -158,21 +158,18 @@ a stream reader on from the oldest entry it had not finished; this app depends o
 
 ## Does it talk to the Java one?
 
-Not checked, so not claimed — and on RabbitMQ 3.13 it would not work. The
-queues and their classic type, the routing keys and every JSON field are the Java
-app's, but the journal's retention is not written the same way. Java writes an
-hour's `x-max-age` as `3600s`; Go writes it as `1h`. RabbitMQ 4 compares the two
-as durations and accepts either declaration after the other. RabbitMQ 3.13
-compares them as text, and whichever app declares the journal second fails:
+Not checked, so not claimed. The queues and their classic type, the routing keys
+and every JSON field are the Java app's, and since acemq-java-amqp 0.7.13 and
+AceMq.Amqp 0.7.10 the journal's retention is written the same way too: all five
+libraries spell an hour's `x-max-age` as `1h`. Before those releases Java and .NET
+wrote `3600s`. RabbitMQ 4 compares the two as durations and accepts either, but
+RabbitMQ 3.13 compares them as text, so a journal declared by an older Java or
+.NET app still fails the second declarer there:
 
 ```
 PRECONDITION_FAILED - inequivalent arg 'x-max-age' for queue 'ledger.journal'
-in vhost 'ledger': received '3600s' but current is '1h'
+in vhost 'ledger': received '1h' but current is '3600s'
 ```
-
-Not changed here, because it is not this app's to change: Java and .NET write
-seconds, Go, Python and Ruby write the largest whole unit, and moving one library
-to the other side would break its own existing streams on 3.13 the same way.
 
 ## What is honestly not here
 
