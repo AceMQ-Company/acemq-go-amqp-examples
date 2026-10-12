@@ -152,10 +152,9 @@ stream those include where to start reading. A projection that began at the firs
 entry was handed the whole journal a second time — 3,000 entries became 6,001
 deliveries in the reproduction, every balance doubled, the bug above arriving by
 another road — and a reader that began at the next entry skipped everything
-appended while it was disconnected. Fixed in the library, which now carries a
-stream reader on from the oldest entry it had not finished, but **not yet
-released**: this app depends on 0.9.5, which still has it. The run never drops a
-connection, so it is unaffected; a long-lived projection on 0.9.5 is not.
+appended while it was disconnected. Fixed in the library in 0.9.6, which carries
+a stream reader on from the oldest entry it had not finished; this app depends on
+0.9.6. A long-lived projection on 0.9.5 or earlier still has the bug.
 
 ## Does it talk to the Java one?
 
