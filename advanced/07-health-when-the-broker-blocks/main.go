@@ -271,7 +271,10 @@ func publishUntilBlocked(ctx context.Context, mq *acemq.Conn) error {
 			// Expected, once: the send that was in flight when the broker
 			// stopped reading is waiting for a confirm that is not coming. The
 			// loop goes round, connection.blocked has arrived by then, and the
-			// next send is refused rather than left waiting.
+			// next send is refused rather than left waiting. The two-second
+			// deadline here ends it first; left alone, the library would fail
+			// it with a ConnectionBlockedError once the block had lasted
+			// rabbitmq.Config.BlockedTimeout, thirty seconds by default.
 			log.Printf("  publish    %d went unconfirmed, which is the broker having stopped reading mid-publish", attempt)
 		}
 		time.Sleep(200 * time.Millisecond)

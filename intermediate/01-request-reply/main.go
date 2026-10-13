@@ -110,10 +110,14 @@ func main() {
 	wg.Wait()
 	log.Println("ten concurrent requests, each got its own answer")
 
-	// A responder that fails says so.
-	if _, err := requester.Do(ctx, PriceRequest{SKU: "unknown"}); err != nil {
-		log.Printf("the responder's reason came back: %v", err)
+	// A responder that fails says so, and the caller can tell that apart from
+	// a timeout or a transport error: the round trip worked, the answer was
+	// a failure.
+	_, err = requester.Do(ctx, PriceRequest{SKU: "unknown"})
+	if !errors.Is(err, patterns.ErrResponderFailed) {
+		log.Fatalf("the responder failed, and the caller got %v", err)
 	}
+	log.Printf("the responder's reason came back: %v", err)
 }
 
 // brokerURL is the compose broker unless ACEMQ_URL names another.
