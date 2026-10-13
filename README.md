@@ -144,6 +144,37 @@ The workflow finds examples rather than listing them, so one added without
 touching CI is still run — and it fails if it finds fewer than it expects, since
 a `find` that matches nothing would otherwise pass without running anything.
 
+## Versions
+
+This repository has no releases of its own. It tracks [acemq-go-amqp](https://github.com/AceMQ-Company/acemq-go-amqp),
+moving the pin in `go.mod` in a commit of its own whenever the library
+releases. A tag records that the examples were verified against one library
+release:
+
+| Tag | On |
+|---|---|
+| `examples-v<library version>`, e.g. `examples-v0.9.9` | the commit whose `go.mod` pins that release, once CI has passed on it |
+| `examples-v<library version>-r<n>`, e.g. `examples-v0.9.9-r2` | a later commit worth picking up at the same release, such as a fix to an example or its README; the highest `n` wins |
+
+The `examples-` prefix keeps these apart from the library's own `vX.Y.Z`
+releases, which they would otherwise look like and are not. It also keeps Go's module proxy from taking them for
+versions of this module, which a plain `vX.Y.Z` here would be.
+
+Tags are annotated and permanent: one is never moved, re-pointed or deleted,
+because [acemq-tutorials](https://github.com/AceMQ-Company/acemq-tutorials)
+builds its images from them. A tag on the wrong commit is corrected by the next
+revision, not by moving it.
+
+To tag, from an up-to-date `main` whose CI is green:
+
+```bash
+git tag -a examples-v0.9.9 -m "Examples verified against acemq-go-amqp 0.9.9"
+git push origin examples-v0.9.9
+```
+
+The tutorials pick up a library release only once its examples tag exists, so
+tagging is the last step of moving the pin.
+
 ## Licence
 
 Apache 2.0. See [LICENSE](LICENSE).
