@@ -7,8 +7,8 @@
 
 Runnable examples for [AceMQ for Go](https://github.com/AceMQ-Company/acemq-go-amqp).
 Each one is a single `main.go`: open a directory and the whole example is in
-front of you, with no shared helpers to trace. The newer ones have a `README.md`
-beside them for the part that is worth explaining rather than narrating.
+front of you, with no shared helpers to trace. Each one has a `README.md`
+beside it for the part that is worth explaining rather than narrating.
 
 They depend on the **released** version, so they resolve exactly what the
 documentation tells you to depend on — and an example that stops compiling
