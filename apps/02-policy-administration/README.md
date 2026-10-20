@@ -151,13 +151,13 @@ refused the publish — "nothing is bound to exchange 'policy' for routing key
 queue exists because of that failure, and a regulated insurer would have had one
 anyway.
 
-**In Go, the same mistake would have been silent.** Java's publishers are
-mandatory by default. Go's are not: without `acemq.Mandatory`, a message nothing
-is bound to is discarded by the broker and `Send` returns nil. Every event in
-this port goes through `contracts.Event`, which asks for mandatory publishing, so
-the failure Java gave its authors is the failure this port would give its own.
-Leave the option out and delete the audit binding, and the run still passes the
-Java test's assertions — only the audit count notices.
+**Before acemq-go-amqp 0.9.11, the same mistake would have been silent in Go.**
+Java's publishers have always been mandatory by default; Go's became mandatory
+by default in 0.9.11. Before that, without `acemq.Mandatory`, a message nothing
+was bound to was discarded by the broker and `Send` returned nil. Every event in
+this port goes through `contracts.Event`, which still asks for mandatory
+publishing explicitly, so the failure Java gave its authors is the failure this
+port gives its own. Only `acemq.AllowUnroutable` turns it back off.
 
 ## Does it talk to the Java one?
 

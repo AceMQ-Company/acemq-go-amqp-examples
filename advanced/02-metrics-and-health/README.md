@@ -37,7 +37,7 @@ serving [/acemq-metrics /acemq-health /acemq-info] on 127.0.0.1:9090
 /acemq-health -> 200
 {"status":"up","checked":"2026-10-13T18:29:56.951682Z","parts":{"broker":{"status":"up","checked":"2026-10-13T18:29:56.951702Z","parts":{"blocked":false,"consumers":1,"roundTripMillis":5}}}}
 /acemq-info -> 200
-{"library":"acemq-go-amqp","libraryVersion":"0.9.10","name":"examples","transport":{"dead-lettering":true,"publisher-confirms":true,"quorum-queues":true,"recovery":true,"streams":true},"version":"1.0.0"}
+{"library":"acemq-go-amqp","libraryVersion":"0.9.11","name":"examples","transport":{"dead-lettering":true,"publisher-confirms":true,"quorum-queues":true,"recovery":true,"streams":true},"version":"1.0.0"}
 
 and the metrics Prometheus would scrape:
 /acemq-metrics -> 200

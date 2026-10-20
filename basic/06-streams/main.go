@@ -192,9 +192,11 @@ func main() {
 	//
 	// On a queue, Retry republishes the message onto the queue it came from. On a
 	// stream that would append a second copy to the log, for every reader to see
-	// now and on every replay afterwards, so ReadStream refuses it: the message is
-	// parked on {stream}.parked as a copy, the handler's error explains why, and
-	// the stream itself is not touched.
+	// now and on every replay afterwards, so ReadStream refuses it. By default
+	// (since 0.9.11) the reader stops at that message and copies it nowhere.
+	// This reader asks for ParkOnFailure instead: the message is parked on
+	// {stream}.parked as a copy, the handler's error explains why, the stream
+	// itself is not touched, and the reader carries on.
 	retrier := &reader{}
 	retrierSub, err := patterns.ReadStream(ctx, mq, stream,
 		func(_ context.Context, m acemq.Message[OrderPlaced]) acemq.Ack {
@@ -204,7 +206,7 @@ func main() {
 			}
 			return acemq.Accept()
 		},
-		patterns.StreamOptions{Offset: patterns.FromFirst(), Name: "go-retrier"})
+		patterns.StreamOptions{Offset: patterns.FromFirst(), Name: "go-retrier", OnFailure: patterns.ParkOnFailure})
 	if err != nil {
 		log.Fatal(err)
 	}

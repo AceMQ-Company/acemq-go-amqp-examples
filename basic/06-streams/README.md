@@ -11,8 +11,10 @@ finds all ten.
 - **Checkpointing is yours.** The broker keeps nobody's position. The reader
   records the `x-stream-offset` of the last message it handled, and resumes from
   **one past it**.
-- **`acemq.Retry` is refused on a stream**, and the message parked with the
-  reason, rather than appended to the log a second time.
+- **`acemq.Retry` is refused on a stream.** By default the reader stops at that
+  message; this example asks for `patterns.ParkOnFailure`, so the message is
+  parked with the reason and the reader carries on. Either way nothing is
+  appended to the log a second time.
 - **Reading did not consume.** Three readers acknowledged everything, and a
   fourth attached afterwards reads the same ten in the same order.
 
@@ -74,11 +76,17 @@ nothing, so accepting one you did not handle loses nothing either.
 
 On a queue, `acemq.Retry` republishes the message onto the queue it came from. On
 a stream that appends a second copy to the log — for every reader to see now,
-and on every replay afterwards — so `patterns.ReadStream` will not do it. The
-message is parked on `{stream}.parked` as a copy, with a reason that says the
-retry was refused, names the two honest alternatives, and keeps the handler's
-own error at the end. The original is still in the stream, because nothing is
-ever removed from one.
+and on every replay afterwards — so `patterns.ReadStream` will not do it.
+
+Since acemq-go-amqp 0.9.11 the default is to **stop the reader** at that
+message: nothing after it is handled and no copy is written anywhere, so a
+reader restarted at its offset sees it again. This example's retrying reader
+passes `StreamOptions{OnFailure: patterns.ParkOnFailure}` instead, which was the
+default before 0.9.11: the message is parked on `{stream}.parked` as a copy,
+with a reason that says the retry was refused, names the two honest
+alternatives, and keeps the handler's own error at the end, and the reader
+reads on. The original is still in the stream, because nothing is ever removed
+from one.
 
 The two alternatives, both one line in the handler:
 

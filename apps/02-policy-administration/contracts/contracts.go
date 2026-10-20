@@ -193,11 +193,11 @@ func Topology() *acemq.Topology {
 
 // Event is a publisher for one of the events above.
 //
-// Mandatory, which is the one place this port says something Java does not
-// have to. Java's publishers are mandatory by default, and that default is what
-// turned the missing audit binding into a failure rather than into lost
-// messages. Go's are not: without this option an event nothing is bound to is
-// dropped by the broker and the publish succeeds.
+// Mandatory, spelled out. Java's publishers are mandatory by default, and that
+// default is what turned the missing audit binding into a failure rather than
+// into lost messages. Go's publishers are mandatory by default from 0.9.11 on;
+// before that, without this option, an event nothing was bound to was dropped
+// by the broker and the publish succeeded.
 func Event[T any](mq *acemq.Conn, routingKey string) *acemq.Publisher[T] {
 	return acemq.NewPublisher[T](mq, Exchange, routingKey, acemq.Mandatory[T]())
 }
