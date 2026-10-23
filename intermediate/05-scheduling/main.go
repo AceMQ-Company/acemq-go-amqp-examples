@@ -137,6 +137,16 @@ func main() {
 	}
 	sort.Slice(seen, func(i, j int) bool { return seen[i].at < seen[j].at })
 
+	// The scheduler counts a delivery when the broker confirms it, and the broker
+	// can hand the message to the consumer above before that confirm gets back. So
+	// the third arrival can come a moment before the third count; reading the
+	// counter at once reported "delivered 2" now and then. Nothing is lost —
+	// every message has already arrived — so wait for the count to catch up.
+	for counted := time.Now().Add(5 * time.Second); scheduler.Delivered() < 3 &&
+		time.Now().Before(counted); {
+		time.Sleep(10 * time.Millisecond)
+	}
+
 	log.Printf("scheduled %d, delivered %d, hops %d",
 		scheduler.Scheduled(), scheduler.Delivered(), scheduler.Hops())
 	log.Println()
